@@ -17,7 +17,9 @@ import {
   Receipt,
   Star,
   Check,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  BookOpen
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -34,11 +36,18 @@ interface SessionItem {
 interface InvoiceItem {
   id: string;
   invoice_number: string;
-  amount: number;
+  amount?: number;
   due_date: string;
   status: "paid" | "unpaid" | "verifying";
   receipt_url?: string;
   payment_method?: string;
+}
+
+interface StudentEvaluation {
+  eval_date: string;
+  fluencyScore: number;
+  fluencyFocus: string[];
+  tutorNotes: string;
 }
 
 interface StudentPortalData {
@@ -47,15 +56,32 @@ interface StudentPortalData {
   age: string;
   location: string;
   class_link: string;
-  next_class_at?: string;
   teacher_name: string;
   teacher_credentials: string;
   total_sessions: number;
+  completed_sessions: number;
   tilawah_page: number;
   tilawah_pages: number[];
   hifz_page: number;
   memorized_pages: number[];
 }
+
+const getFluencyStyle = (score: number) => {
+  const safeScore = Math.max(0, Math.min(100, score));
+  let hue = 0;
+  if (safeScore <= 30) hue = (safeScore / 30) * 25;
+  else if (safeScore <= 60) hue = 25 + ((safeScore - 30) / 30) * 35;
+  else if (safeScore <= 90) hue = 60 + ((safeScore - 60) / 30) * 75;
+  else hue = 135 + ((safeScore - 90) / 10) * 80;
+
+  return {
+    bg: `hsl(${hue}, 85%, 96%)`,
+    border: `hsl(${hue}, 60%, 80%)`,
+    text: `hsl(${hue}, 90%, 25%)`,
+    barColor: `hsl(${hue}, 85%, 45%)`,
+    label: safeScore <= 30 ? "Developing" : safeScore <= 60 ? "Intermediate" : safeScore <= 90 ? "Good" : "Mastery"
+  };
+};
 
 function PortalContent() {
   const searchParams = useSearchParams();
@@ -63,6 +89,7 @@ function PortalContent() {
 
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState<StudentPortalData | null>(null);
+  const [evaluation, setEvaluation] = useState<StudentEvaluation | null>(null);
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [activeTab, setActiveTab] = useState<"tilawah" | "hifz">("tilawah");
 
@@ -86,6 +113,7 @@ function PortalContent() {
 
       setLoading(true);
       try {
+        // 1. Fetch Student Record
         const { data: stData, error: stError } = await supabase
           .from("students")
           .select("*")
@@ -98,24 +126,41 @@ function PortalContent() {
           return;
         }
 
-        const currentStudent: StudentPortalData = {
+        setStudent({
           id: stData.id,
           name: stData.name,
           age: stData.age,
           location: stData.location,
           class_link: stData.class_link || "https://meet.google.com/",
-          next_class_at: stData.next_class_at,
           teacher_name: stData.teacher_name || "Ustaz Salman Zulkifle",
           teacher_credentials: stData.teacher_credentials || "B.A. Islamic Studies (Mu'tah University), Classical Qira'at Specialist",
           total_sessions: stData.total_sessions || 12,
+          completed_sessions: stData.completed_sessions || 0,
           tilawah_page: stData.tilawah_page || 1,
           tilawah_pages: stData.tilawah_pages || [],
           hifz_page: stData.hifz_page || 1,
           memorized_pages: stData.memorized_pages || []
-        };
-        setStudent(currentStudent);
+        });
 
-        // Fetch class sessions
+        // 2. Fetch Latest Performance Evaluation Report
+        const { data: evData } = await supabase
+          .from("student_evaluations")
+          .select("*")
+          .eq("student_id", stData.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (evData) {
+          setEvaluation({
+            eval_date: evData.eval_date || evData.created_at?.split("T")[0],
+            fluencyScore: evData.fluency_score || 80,
+            fluencyFocus: evData.fluency_focus || [],
+            tutorNotes: evData.tutor_notes || ""
+          });
+        }
+
+        // 3. Fetch Class Attendance Sessions
         const { data: sessData } = await supabase
           .from("class_sessions")
           .select("*")
@@ -136,7 +181,7 @@ function PortalContent() {
           setSessions(defaults);
         }
 
-        // Fetch invoice
+        // 4. Fetch Active Invoice
         const { data: invData } = await supabase
           .from("invoices")
           .select("*")
@@ -152,7 +197,6 @@ function PortalContent() {
           const defaultInv = {
             student_id: stData.id,
             invoice_number: newInvoiceNumber,
-            amount: 100.00,
             status: (stData.payment_status === "Paid" ? "paid" : "unpaid") as "paid" | "unpaid",
             due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
           };
@@ -196,7 +240,7 @@ function PortalContent() {
         .eq("id", invoice.id);
 
       setInvoice({ ...invoice, receipt_url: receiptUrl, status: "verifying" });
-      alert("Receipt uploaded successfully. Status updated to 'Verifying'.");
+      alert("Receipt uploaded successfully. The status is now set to 'Under Verification'.");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       alert("Failed to upload receipt: " + message);
@@ -237,7 +281,6 @@ function PortalContent() {
     );
   }
 
-  // Fallback for missing or invalid link
   if (!studentId || !student) {
     return (
       <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center p-6 text-center">
@@ -246,7 +289,7 @@ function PortalContent() {
         </div>
         <h2 className="text-base font-bold text-neutral-950 mb-1">Invalid or Missing Link</h2>
         <p className="text-xs text-neutral-500 max-w-sm mb-4">
-          Please open the official Pocket Tahfiz link sent by your teacher to access your personal dashboard.
+          Please open the official link sent by your teacher on WhatsApp to access your dashboard.
         </p>
         <Link href="/" className="text-xs font-bold text-neutral-900 underline hover:text-black">
           Return to Home
@@ -256,10 +299,11 @@ function PortalContent() {
   }
 
   const verifiedDoneCount = sessions.filter((s) => s.tutor_verified && s.student_verified).length;
+  const fluencyInfo = evaluation ? getFluencyStyle(evaluation.fluencyScore) : null;
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-neutral-900 font-sans antialiased pb-20">
-      {/* Navigation */}
+      {/* Top Navbar */}
       <nav className="border-b border-neutral-200/80 bg-white sticky top-0 z-40 px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -279,7 +323,7 @@ function PortalContent() {
 
       <main className="max-w-4xl mx-auto px-6 pt-8 space-y-6">
         
-        {/* 1. Live Google Meet / Zoom Classroom */}
+        {/* 1. Live Google Meet / Online Classroom */}
         <div className="bg-neutral-950 text-white p-6 rounded-3xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold text-neutral-300">
@@ -302,7 +346,94 @@ function PortalContent() {
           </a>
         </div>
 
-        {/* 2. Invoicing & Payment Hub */}
+        {/* 2. STUDENT PERFORMANCE & EVALUATION REPORT (STUDENT POV) */}
+        <div className="bg-white border border-neutral-200/80 p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-neutral-100 border border-neutral-200 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-neutral-900" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-neutral-950">Student Performance &amp; Evaluation</h3>
+                <p className="text-[11px] text-neutral-400">Official progress summary and feedback from Ustaz</p>
+              </div>
+            </div>
+            {evaluation?.eval_date && (
+              <span className="text-[10px] font-bold text-neutral-500 bg-neutral-100 px-3 py-1 rounded-full border border-neutral-200 w-fit">
+                Evaluated: {evaluation.eval_date}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Fluency & Tajweed Score Card */}
+            <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 space-y-3">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block">Recitation Fluency &amp; Mastery</span>
+              
+              {fluencyInfo && evaluation ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-neutral-800">Tajweed Fluency Rating</span>
+                    <span 
+                      className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border"
+                      style={{ backgroundColor: fluencyInfo.bg, borderColor: fluencyInfo.border, color: fluencyInfo.text }}
+                    >
+                      {evaluation.fluencyScore}% • {fluencyInfo.label}
+                    </span>
+                  </div>
+                  
+                  <div className="w-full bg-neutral-200 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full rounded-full transition-all duration-300" 
+                      style={{ width: `${evaluation.fluencyScore}%`, backgroundColor: fluencyInfo.barColor }}
+                    />
+                  </div>
+
+                  {evaluation.fluencyFocus && evaluation.fluencyFocus.length > 0 && (
+                    <div className="pt-1">
+                      <span className="text-[10px] text-neutral-500 font-semibold block mb-1.5">Key Focus Areas:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {evaluation.fluencyFocus.map((f) => (
+                          <span key={f} className="text-[10px] font-bold bg-white text-neutral-800 px-2.5 py-0.5 rounded-full border border-neutral-200">
+                            ✓ {f}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-neutral-400 italic text-xs py-2">
+                  No rubric evaluation entered yet. Your teacher will add remarks after the upcoming session.
+                </div>
+              )}
+            </div>
+
+            {/* Teacher Feedback / Remarks */}
+            <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 flex flex-col justify-between space-y-2">
+              <div>
+                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block mb-1.5">
+                  Ustaz&apos;s Remarks &amp; Advice
+                </span>
+                {evaluation?.tutorNotes ? (
+                  <p className="text-xs text-neutral-800 leading-relaxed italic bg-white p-3 rounded-xl border border-neutral-200">
+                    &ldquo;{evaluation.tutorNotes}&rdquo;
+                  </p>
+                ) : (
+                  <p className="text-xs text-neutral-400 italic bg-white p-3 rounded-xl border border-dashed border-neutral-200">
+                    Keep up the steady recitation. Focus on clear makhraj articulation during each practice.
+                  </p>
+                )}
+              </div>
+              <div className="text-[10px] text-neutral-400 pt-1 flex justify-between">
+                <span>Mentor: {student.teacher_name}</span>
+                <span>Active Track: Tilawah &amp; Hifz</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Invoicing & Receipt Hub (Flexible fee adapted for all students) */}
         {invoice && (
           <div className="bg-white border border-neutral-200/80 p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-100 pb-4">
@@ -311,7 +442,7 @@ function PortalContent() {
                   <Receipt className="w-5 h-5 text-neutral-900" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-neutral-950">Monthly Tuition Fee Invoice</h3>
+                  <h3 className="text-sm font-bold text-neutral-950">Tuition Fee Invoice</h3>
                   <p className="text-[11px] text-neutral-400">Invoice: {invoice.invoice_number}</p>
                 </div>
               </div>
@@ -329,10 +460,12 @@ function PortalContent() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
               <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 space-y-2">
-                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block">Payment Details</span>
+                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block">Payment Information</span>
                 <div className="flex justify-between items-baseline">
                   <span className="text-xs text-neutral-600">Monthly Mentorship Package:</span>
-                  <span className="text-lg font-black text-neutral-950">RM {Number(invoice.amount).toFixed(2)}</span>
+                  <span className="text-xs font-bold text-neutral-950 bg-white px-2.5 py-1 rounded-md border border-neutral-200">
+                    Agreed Student Rate
+                  </span>
                 </div>
                 <div className="text-[11px] text-neutral-500 pt-1 border-t border-neutral-200/60 flex justify-between">
                   <span>Due Date:</span>
@@ -348,10 +481,10 @@ function PortalContent() {
               <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 flex flex-col justify-between space-y-3">
                 <div>
                   <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block mb-1">
-                    Upload Bank Transfer Receipt
+                    Upload Transfer Receipt
                   </span>
                   <p className="text-[11px] text-neutral-500 leading-relaxed">
-                    Once payment is completed, upload your screenshot or PDF slip here. The teacher will verify and update your status.
+                    Once payment is completed, upload your screenshot or PDF slip here. Ustaz will verify and update your status.
                   </p>
                 </div>
 
@@ -367,7 +500,7 @@ function PortalContent() {
                       rel="noopener noreferrer" 
                       className="text-xs font-bold underline text-neutral-900"
                     >
-                      View Receipt
+                      View Slip
                     </a>
                   </div>
                 ) : (
@@ -377,7 +510,7 @@ function PortalContent() {
                     ) : (
                       <>
                         <UploadCloud className="w-5 h-5 text-neutral-500" />
-                        <span className="text-xs font-bold text-neutral-900">Select Receipt File / PDF</span>
+                        <span className="text-xs font-bold text-neutral-900">Select Receipt Slip (Image / PDF)</span>
                         <span className="text-[10px] text-neutral-400">PNG, JPG, or PDF (max 5MB)</span>
                       </>
                     )}
@@ -395,7 +528,7 @@ function PortalContent() {
           </div>
         )}
 
-        {/* 3. Certified Teacher Credibility */}
+        {/* 4. Certified Teacher Credibility */}
         <div className="bg-white border border-neutral-200/80 p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex items-start gap-4">
           <div className="w-12 h-12 rounded-2xl bg-neutral-100 border border-neutral-200 flex items-center justify-center shrink-0">
             <Award className="w-6 h-6 text-neutral-900" />
@@ -410,7 +543,7 @@ function PortalContent() {
           </div>
         </div>
 
-        {/* 4. Two-Way Attendance Sign-Off */}
+        {/* 5. Two-Way Attendance Sign-Off */}
         <div className="bg-white border border-neutral-200/80 p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -491,12 +624,15 @@ function PortalContent() {
           </div>
         </div>
 
-        {/* 5. 604-Box Density Map */}
+        {/* 6. 604-Box Progress Density Map */}
         <div className="bg-white border border-neutral-200/80 p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-neutral-950">604-Page Quran Progress Map</h3>
-              <p className="text-[11px] text-neutral-400">Track your Tilawah recitation and Hifz memorization progress</p>
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-neutral-900" />
+              <div>
+                <h3 className="text-sm font-bold text-neutral-950">604-Page Quran Progress Map</h3>
+                <p className="text-[11px] text-neutral-400">Track your recitation and memorization milestones</p>
+              </div>
             </div>
             <div className="flex gap-1.5 p-1 bg-neutral-100 rounded-full">
               <button
@@ -539,11 +675,11 @@ function PortalContent() {
           </div>
         </div>
 
-        {/* 6. Parent Star Rating & Review */}
+        {/* 7. Parent Star Rating & Review */}
         <div className="bg-white border border-neutral-200/80 p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-4">
           <div className="border-b border-neutral-100 pb-3">
-            <h3 className="text-sm font-bold text-neutral-950">Teacher Evaluation &amp; Parent Feedback</h3>
-            <p className="text-[11px] text-neutral-400">Leave a review for {student.teacher_name} to help us maintain high educational standards.</p>
+            <h3 className="text-sm font-bold text-neutral-950">Teacher Evaluation &amp; Feedback</h3>
+            <p className="text-[11px] text-neutral-400">Leave a review for {student.teacher_name} to help improve mentorship quality.</p>
           </div>
 
           {reviewSubmitted ? (
