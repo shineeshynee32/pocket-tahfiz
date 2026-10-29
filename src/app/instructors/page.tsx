@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { 
   Lock, 
-  ArrowLeft, 
   BookOpen, 
   Award, 
   GraduationCap, 
@@ -14,7 +12,8 @@ import {
   ChevronRight
 } from "lucide-react";
 
-type Language = "en" | "ms" | "ar";
+// 1. Import our global memory box hook instead of React's useState
+import { useLanguage, Language } from "@/context/LanguageContext";
 
 interface InstructorContent {
   nav: { instructors: string; goals: string; portal: string };
@@ -124,12 +123,12 @@ const translations: Record<Language, InstructorContent> = {
 };
 
 export default function InstructorsPage() {
-  const [lang, setLang] = useState<Language>("en");
-  const t = translations[lang];
-  const isRtl = lang === "ar";
+  // 2. We use our global language hook instead of local React useState
+  const { lang, setLanguage, isRTL } = useLanguage();
+  const t = translations[lang] || translations.en;
 
   return (
-    <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white">
+    <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white">
       {/* Frosted Glass Navbar */}
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-neutral-200/40">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -155,12 +154,14 @@ export default function InstructorsPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Global Language Switcher Buttons */}
             <div className="inline-flex p-0.5 rounded-full bg-neutral-100 border border-neutral-200/60 text-[11px] font-medium">
               {(["en", "ms", "ar"] as Language[]).map((locale) => (
                 <button
                   key={locale}
                   type="button"
-                  onClick={() => setLang(locale)}
+                  // 3. We call setLanguage from our global hook here!
+                  onClick={() => setLanguage(locale)}
                   className={`px-2.5 py-1 rounded-full transition cursor-pointer ${
                     lang === locale
                       ? "bg-white text-neutral-950 shadow-xs font-semibold"
@@ -258,7 +259,7 @@ export default function InstructorsPage() {
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-black text-white hover:bg-neutral-800 text-xs font-medium tracking-tight transition shrink-0 cursor-pointer"
           >
             <span>{t.nav.portal}</span>
-            <ChevronRight className={`w-3.5 h-3.5 ${isRtl ? "rotate-180" : ""}`} />
+            <ChevronRight className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
           </Link>
         </div>
       </section>

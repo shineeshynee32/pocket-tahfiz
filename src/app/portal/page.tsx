@@ -3,13 +3,13 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { 
-  Video, 
-  Award, 
-  CheckCircle2, 
-  Clock, 
-  XCircle, 
-  ShieldCheck, 
+import {
+  Video,
+  Award,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  ShieldCheck,
   ArrowLeft,
   Loader2,
   ExternalLink,
@@ -22,6 +22,74 @@ import {
   BookOpen
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useLanguage } from "@/context/LanguageContext";
+
+// Translation Dictionary for English, Bahasa Melayu, and Arabic
+const translations = {
+  en: {
+    portalTitle: "Pocket Tahfiz Parent & Student Portal",
+    activeMentorship: "Active Mentorship",
+    liveClassroom: "1-on-1 Online Classroom",
+    liveClassroomTitle: "Live Classroom Link",
+    enterMeeting: "Enter Google Meet / Zoom",
+    performanceTitle: "Student Performance & Evaluation",
+    fluencyTitle: "Recitation Fluency & Mastery",
+    remarksTitle: "Ustaz's Remarks & Advice",
+    invoiceTitle: "Tuition Fee Invoice",
+    receiptUpload: "Upload Transfer Receipt",
+    verifiedDone: "Completed",
+    attendanceTitle: "Attendance & Session Sign-Off Ledger",
+    quranMapTitle: "604-Page Quran Progress Map",
+    tilawah: "Tilawah",
+    hifz: "Hifz",
+    reviewTitle: "Teacher Evaluation & Feedback",
+    submitReview: "Submit Review",
+    confirmAttended: "Confirm Attended",
+    revoke: "Revoke"
+  },
+  ms: {
+    portalTitle: "Portal Ibu Bapa & Pelajar Pocket Tahfiz",
+    activeMentorship: "Bimbingan Aktif",
+    liveClassroom: "Kelas Dalam Talian 1-ke-1",
+    liveClassroomTitle: "Pautan Kelas Langsung",
+    enterMeeting: "Masuk Google Meet / Zoom",
+    performanceTitle: "Prestasi & Penilaian Pelajar",
+    fluencyTitle: "Kelancaran & Penguasaan Tajwid",
+    remarksTitle: "Ulasan & Nasihat Ustaz",
+    invoiceTitle: "Invois Yuran Pengajian",
+    receiptUpload: "Muat Naik Resit Pembayaran",
+    verifiedDone: "Selesai",
+    attendanceTitle: "Lejar Pengesahan Kehadiran & Sesi",
+    quranMapTitle: "Peta Kemajuan 604 Muka Surat Al-Quran",
+    tilawah: "Tilawah",
+    hifz: "Hifz",
+    reviewTitle: "Penilaian & Maklum Balas Guru",
+    submitReview: "Hantar Ulasan",
+    confirmAttended: "Sahkan Hadir",
+    revoke: "Batal Pengesahan"
+  },
+  ar: {
+    portalTitle: "بوابة الطالب وأولياء الأمور - بوكيت تحفيظ",
+    activeMentorship: "إشراف نشط",
+    liveClassroom: "فصل دراسي فردي عبر الإنترنت",
+    liveClassroomTitle: "رابط الفصل المباشر",
+    enterMeeting: "الدخول إلى Google Meet / Zoom",
+    performanceTitle: "أداء وتقييم الطالب",
+    fluencyTitle: "طلاقة التلاوة وإتقان التجويد",
+    remarksTitle: "ملاحظات وتوجيهات الأستاذ",
+    invoiceTitle: "فاتورة الرسوم الدراسية",
+    receiptUpload: "رفع إيصال التحويل",
+    verifiedDone: "مكتمل",
+    attendanceTitle: "سجل تأكيد الحضور والجلسات",
+    quranMapTitle: "خريطة تقدم صفحات القرآن (604 صفحة)",
+    tilawah: "تلاوة",
+    hifz: "حفظ",
+    reviewTitle: "تقييم المعلم والملاحظات",
+    submitReview: "إرسال التقييم",
+    confirmAttended: "تأكيد الحضور",
+    revoke: "إلغاء التأكيد"
+  }
+};
 
 interface SessionItem {
   id: string;
@@ -87,17 +155,19 @@ function PortalContent() {
   const searchParams = useSearchParams();
   const studentId = searchParams.get("id");
 
+  // Consume our persisted language context memory box
+  const { lang, setLanguage, isRTL } = useLanguage();
+  const t = translations[lang] || translations.en;
+
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState<StudentPortalData | null>(null);
   const [evaluation, setEvaluation] = useState<StudentEvaluation | null>(null);
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [activeTab, setActiveTab] = useState<"tilawah" | "hifz">("tilawah");
 
-  // Invoicing & Receipt State
   const [invoice, setInvoice] = useState<InvoiceItem | null>(null);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
-  // Review State
   const [rating, setRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [reviewComment, setReviewComment] = useState("");
@@ -110,10 +180,8 @@ function PortalContent() {
         setLoading(false);
         return;
       }
-
       setLoading(true);
       try {
-        // 1. Fetch Student Record
         const { data: stData, error: stError } = await supabase
           .from("students")
           .select("*")
@@ -142,7 +210,6 @@ function PortalContent() {
           memorized_pages: stData.memorized_pages || []
         });
 
-        // 2. Fetch Latest Performance Evaluation Report
         const { data: evData } = await supabase
           .from("student_evaluations")
           .select("*")
@@ -160,7 +227,6 @@ function PortalContent() {
           });
         }
 
-        // 3. Fetch Class Attendance Sessions
         const { data: sessData } = await supabase
           .from("class_sessions")
           .select("*")
@@ -181,7 +247,6 @@ function PortalContent() {
           setSessions(defaults);
         }
 
-        // 4. Fetch Active Invoice
         const { data: invData } = await supabase
           .from("invoices")
           .select("*")
@@ -209,38 +274,30 @@ function PortalContent() {
         setLoading(false);
       }
     }
-
     loadPortal();
   }, [studentId]);
 
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !student || !invoice) return;
-
     setUploadingReceipt(true);
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${student.id}_${Date.now()}.${fileExt}`;
-
       const { error: uploadError } = await supabase.storage
         .from("receipts")
         .upload(fileName, file, { cacheControl: "3600", upsert: true });
-
       if (uploadError) throw uploadError;
-
       const { data: publicData } = supabase.storage
         .from("receipts")
         .getPublicUrl(fileName);
-
       const receiptUrl = publicData.publicUrl;
-
       await supabase
         .from("invoices")
         .update({ receipt_url: receiptUrl, status: "verifying" })
         .eq("id", invoice.id);
-
       setInvoice({ ...invoice, receipt_url: receiptUrl, status: "verifying" });
-      alert("Receipt uploaded successfully. The status is now set to 'Under Verification'.");
+      alert("Receipt uploaded successfully.");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       alert("Failed to upload receipt: " + message);
@@ -252,7 +309,6 @@ function PortalContent() {
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!student) return;
-
     setSubmittingReview(true);
     try {
       const { error } = await supabase.from("parent_reviews").insert({
@@ -261,7 +317,6 @@ function PortalContent() {
         rating,
         comment: reviewComment
       });
-
       if (error) throw error;
       setReviewSubmitted(true);
     } catch (err: unknown) {
@@ -302,35 +357,68 @@ function PortalContent() {
   const fluencyInfo = evaluation ? getFluencyStyle(evaluation.fluencyScore) : null;
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] text-neutral-900 font-sans antialiased pb-20">
-      {/* Top Navbar */}
+    <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-[#F8F9FA] text-neutral-900 font-sans antialiased pb-20">
+      {/* Top Navbar with Language Controls */}
       <nav className="border-b border-neutral-200/80 bg-white sticky top-0 z-40 px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="p-2 text-neutral-400 hover:text-neutral-900 bg-neutral-100 rounded-full transition cursor-pointer">
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
             </Link>
             <div>
               <span className="text-xs font-bold text-neutral-950 block leading-tight">{student.name}</span>
-              <span className="text-[10px] text-neutral-400 font-medium">Pocket Tahfiz Parent &amp; Student Portal</span>
+              <span className="text-[10px] text-neutral-400 font-medium">{t.portalTitle}</span>
             </div>
           </div>
-          <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-neutral-100 border border-neutral-200 text-neutral-800">
-            Active Mentorship
-          </span>
+
+          <div className="flex items-center gap-3">
+            {/* Persisted Language Switcher */}
+            <div className="flex items-center bg-neutral-100 rounded-full p-1 border border-neutral-200">
+              <button
+                type="button"
+                onClick={() => setLanguage("en")}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+                  lang === "en" ? "bg-white text-black shadow-xs" : "text-neutral-500 hover:text-black"
+                }`}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("ms")}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+                  lang === "ms" ? "bg-white text-black shadow-xs" : "text-neutral-500 hover:text-black"
+                }`}
+              >
+                BM
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("ar")}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+                  lang === "ar" ? "bg-white text-black shadow-xs" : "text-neutral-500 hover:text-black"
+                }`}
+              >
+                العربية
+              </button>
+            </div>
+
+            <span className="hidden sm:inline-block px-3 py-1 rounded-full text-[10px] font-bold bg-neutral-100 border border-neutral-200 text-neutral-800">
+              {t.activeMentorship}
+            </span>
+          </div>
         </div>
       </nav>
 
       <main className="max-w-4xl mx-auto px-6 pt-8 space-y-6">
-        
         {/* 1. Live Google Meet / Online Classroom */}
         <div className="bg-neutral-950 text-white p-6 rounded-3xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold text-neutral-300">
               <Video className="w-3 h-3 text-emerald-400" />
-              <span>1-on-1 Online Classroom</span>
+              <span>{t.liveClassroom}</span>
             </div>
-            <h2 className="text-xl font-extrabold tracking-tight">Live Classroom Link</h2>
+            <h2 className="text-xl font-extrabold tracking-tight">{t.liveClassroomTitle}</h2>
             <p className="text-xs text-neutral-400">
               Classes are conducted via Google Meet / Zoom. Click below to enter your session.
             </p>
@@ -341,12 +429,12 @@ function PortalContent() {
             rel="noopener noreferrer"
             className="bg-white hover:bg-neutral-100 text-neutral-950 px-6 py-3 rounded-full text-xs font-bold inline-flex items-center justify-center gap-2 transition shadow-xs shrink-0 cursor-pointer"
           >
-            <span>Enter Google Meet / Zoom</span>
-            <ExternalLink className="w-3.5 h-3.5" />
+            <span>{t.enterMeeting}</span>
+            <ExternalLink className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
           </a>
         </div>
 
-        {/* 2. STUDENT PERFORMANCE & EVALUATION REPORT (STUDENT POV) */}
+        {/* 2. Performance Report */}
         <div className="bg-white border border-neutral-200/80 p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-100 pb-3">
             <div className="flex items-center gap-2.5">
@@ -354,7 +442,7 @@ function PortalContent() {
                 <Sparkles className="w-5 h-5 text-neutral-900" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-neutral-950">Student Performance &amp; Evaluation</h3>
+                <h3 className="text-sm font-bold text-neutral-950">{t.performanceTitle}</h3>
                 <p className="text-[11px] text-neutral-400">Official progress summary and feedback from Ustaz</p>
               </div>
             </div>
@@ -364,31 +452,26 @@ function PortalContent() {
               </span>
             )}
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Fluency & Tajweed Score Card */}
             <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 space-y-3">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block">Recitation Fluency &amp; Mastery</span>
-              
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block">{t.fluencyTitle}</span>
               {fluencyInfo && evaluation ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-neutral-800">Tajweed Fluency Rating</span>
-                    <span 
+                    <span
                       className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border"
                       style={{ backgroundColor: fluencyInfo.bg, borderColor: fluencyInfo.border, color: fluencyInfo.text }}
                     >
                       {evaluation.fluencyScore}% • {fluencyInfo.label}
                     </span>
                   </div>
-                  
                   <div className="w-full bg-neutral-200 h-2 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full rounded-full transition-all duration-300" 
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
                       style={{ width: `${evaluation.fluencyScore}%`, backgroundColor: fluencyInfo.barColor }}
                     />
                   </div>
-
                   {evaluation.fluencyFocus && evaluation.fluencyFocus.length > 0 && (
                     <div className="pt-1">
                       <span className="text-[10px] text-neutral-500 font-semibold block mb-1.5">Key Focus Areas:</span>
@@ -404,16 +487,14 @@ function PortalContent() {
                 </div>
               ) : (
                 <div className="text-neutral-400 italic text-xs py-2">
-                  No rubric evaluation entered yet. Your teacher will add remarks after the upcoming session.
+                  No rubric evaluation entered yet.
                 </div>
               )}
             </div>
-
-            {/* Teacher Feedback / Remarks */}
             <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 flex flex-col justify-between space-y-2">
               <div>
                 <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block mb-1.5">
-                  Ustaz&apos;s Remarks &amp; Advice
+                  {t.remarksTitle}
                 </span>
                 {evaluation?.tutorNotes ? (
                   <p className="text-xs text-neutral-800 leading-relaxed italic bg-white p-3 rounded-xl border border-neutral-200">
@@ -433,7 +514,7 @@ function PortalContent() {
           </div>
         </div>
 
-        {/* 3. Invoicing & Receipt Hub (Flexible fee adapted for all students) */}
+        {/* 3. Invoicing & Receipt Hub */}
         {invoice && (
           <div className="bg-white border border-neutral-200/80 p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-100 pb-4">
@@ -442,14 +523,13 @@ function PortalContent() {
                   <Receipt className="w-5 h-5 text-neutral-900" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-neutral-950">Tuition Fee Invoice</h3>
+                  <h3 className="text-sm font-bold text-neutral-950">{t.invoiceTitle}</h3>
                   <p className="text-[11px] text-neutral-400">Invoice: {invoice.invoice_number}</p>
                 </div>
               </div>
-
               <span className={`px-3 py-1 rounded-full text-xs font-bold w-fit border ${
-                invoice.status === "paid" 
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                invoice.status === "paid"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                   : invoice.status === "verifying"
                   ? "bg-amber-50 text-amber-700 border-amber-200"
                   : "bg-rose-50 text-rose-700 border-rose-200"
@@ -457,7 +537,6 @@ function PortalContent() {
                 {invoice.status === "paid" ? "Paid ✓" : invoice.status === "verifying" ? "Receipt Under Verification" : "Outstanding / Unpaid"}
               </span>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
               <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 space-y-2">
                 <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block">Payment Information</span>
@@ -477,27 +556,25 @@ function PortalContent() {
                   Account No: <strong>1640 1234 5678</strong> (Salman Zulkifle)
                 </div>
               </div>
-
               <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 flex flex-col justify-between space-y-3">
                 <div>
                   <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block mb-1">
-                    Upload Transfer Receipt
+                    {t.receiptUpload}
                   </span>
                   <p className="text-[11px] text-neutral-500 leading-relaxed">
-                    Once payment is completed, upload your screenshot or PDF slip here. Ustaz will verify and update your status.
+                    Once payment is completed, upload your screenshot or PDF slip here.
                   </p>
                 </div>
-
                 {invoice.receipt_url ? (
                   <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-neutral-200">
                     <span className="text-xs font-semibold text-emerald-700 inline-flex items-center gap-1.5">
                       <Check className="w-4 h-4" />
                       Receipt Uploaded
                     </span>
-                    <a 
-                      href={invoice.receipt_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <a
+                      href={invoice.receipt_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-xs font-bold underline text-neutral-900"
                     >
                       View Slip
@@ -514,12 +591,12 @@ function PortalContent() {
                         <span className="text-[10px] text-neutral-400">PNG, JPG, or PDF (max 5MB)</span>
                       </>
                     )}
-                    <input 
-                      type="file" 
-                      accept="image/*,application/pdf" 
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
                       disabled={uploadingReceipt}
-                      onChange={handleReceiptUpload} 
-                      className="hidden" 
+                      onChange={handleReceiptUpload}
+                      className="hidden"
                     />
                   </label>
                 )}
@@ -528,7 +605,7 @@ function PortalContent() {
           </div>
         )}
 
-        {/* 4. Certified Teacher Credibility */}
+        {/* 4. Teacher Credentials */}
         <div className="bg-white border border-neutral-200/80 p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex items-start gap-4">
           <div className="w-12 h-12 rounded-2xl bg-neutral-100 border border-neutral-200 flex items-center justify-center shrink-0">
             <Award className="w-6 h-6 text-neutral-900" />
@@ -543,22 +620,20 @@ function PortalContent() {
           </div>
         </div>
 
-        {/* 5. Two-Way Attendance Sign-Off */}
+        {/* 5. Attendance Ledger */}
         <div className="bg-white border border-neutral-200/80 p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-neutral-950">Attendance &amp; Session Sign-Off Ledger</h3>
+              <h3 className="text-sm font-bold text-neutral-950">{t.attendanceTitle}</h3>
               <p className="text-[11px] text-neutral-400">Mutual sign-off required between teacher and student</p>
             </div>
             <div className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-800">
-              {verifiedDoneCount} / {sessions.length} Completed
+              {verifiedDoneCount} / {sessions.length} {t.verifiedDone}
             </div>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             {sessions.map((sess) => {
               const isFullyVerified = sess.tutor_verified && sess.student_verified;
-
               return (
                 <div
                   key={sess.id}
@@ -586,14 +661,12 @@ function PortalContent() {
                       <div>Student: {sess.student_verified ? "Confirmed ✓" : "Not yet"}</div>
                     </div>
                   </div>
-
                   {!isFullyVerified && sess.status !== "cancelled" && (
                     <button
                       type="button"
                       onClick={async () => {
                         const nextStudentVerified = !sess.student_verified;
                         const isNowDone = sess.tutor_verified && nextStudentVerified;
-
                         await supabase
                           .from("class_sessions")
                           .update({
@@ -602,7 +675,6 @@ function PortalContent() {
                             status: isNowDone ? "done" : "awaiting_confirmation"
                           })
                           .eq("id", sess.id);
-
                         setSessions(sessions.map((s) => s.id === sess.id ? {
                           ...s,
                           student_verified: nextStudentVerified,
@@ -615,7 +687,7 @@ function PortalContent() {
                           : "bg-black text-white hover:bg-neutral-800"
                       }`}
                     >
-                      {sess.student_verified ? "Revoke" : "Confirm Attended"}
+                      {sess.student_verified ? t.revoke : t.confirmAttended}
                     </button>
                   )}
                 </div>
@@ -630,7 +702,7 @@ function PortalContent() {
             <div className="flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-neutral-900" />
               <div>
-                <h3 className="text-sm font-bold text-neutral-950">604-Page Quran Progress Map</h3>
+                <h3 className="text-sm font-bold text-neutral-950">{t.quranMapTitle}</h3>
                 <p className="text-[11px] text-neutral-400">Track your recitation and memorization milestones</p>
               </div>
             </div>
@@ -641,7 +713,7 @@ function PortalContent() {
                   activeTab === "tilawah" ? "bg-black text-white" : "text-neutral-500 hover:text-black"
                 }`}
               >
-                Tilawah ({student.tilawah_pages.length}/604)
+                {t.tilawah} ({student.tilawah_pages.length}/604)
               </button>
               <button
                 onClick={() => setActiveTab("hifz")}
@@ -649,24 +721,22 @@ function PortalContent() {
                   activeTab === "hifz" ? "bg-black text-white" : "text-neutral-500 hover:text-black"
                 }`}
               >
-                Hifz ({student.memorized_pages.length}/604)
+                {t.hifz} ({student.memorized_pages.length}/604)
               </button>
             </div>
           </div>
-
           <div className="grid grid-cols-20 gap-0.5 p-3 bg-neutral-50 rounded-2xl border border-neutral-200">
             {Array.from({ length: 604 }, (_, i) => i + 1).map((pageNum) => {
-              const isFilled = activeTab === "tilawah" 
+              const isFilled = activeTab === "tilawah"
                 ? student.tilawah_pages.includes(pageNum)
                 : student.memorized_pages.includes(pageNum);
-
               return (
                 <div
                   key={pageNum}
                   title={`Page ${pageNum}`}
                   className={`h-2.5 rounded-2xs transition-colors ${
-                    isFilled 
-                      ? activeTab === "tilawah" ? "bg-blue-600" : "bg-neutral-950" 
+                    isFilled
+                      ? activeTab === "tilawah" ? "bg-blue-600" : "bg-neutral-950"
                       : "bg-neutral-200/70"
                   }`}
                 />
@@ -675,13 +745,12 @@ function PortalContent() {
           </div>
         </div>
 
-        {/* 7. Parent Star Rating & Review */}
+        {/* 7. Teacher Evaluation & Review */}
         <div className="bg-white border border-neutral-200/80 p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-4">
           <div className="border-b border-neutral-100 pb-3">
-            <h3 className="text-sm font-bold text-neutral-950">Teacher Evaluation &amp; Feedback</h3>
+            <h3 className="text-sm font-bold text-neutral-950">{t.reviewTitle}</h3>
             <p className="text-[11px] text-neutral-400">Leave a review for {student.teacher_name} to help improve mentorship quality.</p>
           </div>
-
           {reviewSubmitted ? (
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center space-y-1">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 mx-auto" />
@@ -716,7 +785,6 @@ function PortalContent() {
                   </span>
                 </div>
               </div>
-
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-800 block">Comments / Feedback:</label>
                 <textarea
@@ -727,18 +795,16 @@ function PortalContent() {
                   className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl p-3 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-950 focus:bg-white transition"
                 />
               </div>
-
               <button
                 type="submit"
                 disabled={submittingReview}
                 className="bg-black hover:bg-neutral-800 text-white text-xs font-bold px-6 py-2.5 rounded-full transition shadow-xs disabled:bg-neutral-300 cursor-pointer"
               >
-                {submittingReview ? "Submitting..." : "Submit Review"}
+                {submittingReview ? "Submitting..." : t.submitReview}
               </button>
             </form>
           )}
         </div>
-
       </main>
     </div>
   );

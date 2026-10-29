@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { 
   Lock, 
@@ -14,7 +13,8 @@ import {
   ArrowRight
 } from "lucide-react";
 
-type Language = "en" | "ms" | "ar";
+// 1. We import the global language memory hook here
+import { useLanguage, Language } from "@/context/LanguageContext";
 
 interface GoalContent {
   nav: { instructors: string; goals: string; portal: string };
@@ -105,7 +105,7 @@ const translations: Record<Language, GoalContent> = {
     nav: { instructors: "المعلمون", goals: "أهدافنا", portal: "بوابة الطالب" },
     badge: "الرؤية والمنهج",
     title: "وضوح، إتقان، وأمانة.",
-    subtitle: "الارتقاء بتعليم القرآن الكريم من خلال الجمع بين أصالة المشافهة وأحدث تقنيات المتابعة والتوثيق.",
+    subtitle: "الارتقاء بتعليم القرآن الكريم من خلال الجمع بين أصالة المشاهة وأحدث تقنيات المتابعة والتوثيق.",
     missionHeading: "الرؤية التي انطلق منها بوكيت تحفيظ",
     missionText: "لا غنى عن التلقي والمشافهة وجهًا لوجه. هدفنا توفير بيئة تعليمية ذكية تحفظ حق الطالب والمعلم: من خلال إزالة أي لبس في الحضور، والشفافية الكاملة في المتابعة، والتمثيل البصري الدقيق لمراحل الختم والإتقان.",
     pillarsTitle: "الركائز الأساسية الثلاث",
@@ -138,12 +138,12 @@ const translations: Record<Language, GoalContent> = {
 };
 
 export default function GoalsPage() {
-  const [lang, setLang] = useState<Language>("en");
-  const t = translations[lang];
-  const isRtl = lang === "ar";
+  // 2. Listen to global language context instead of local state
+  const { lang, setLanguage, isRTL } = useLanguage();
+  const t = translations[lang] || translations.en;
 
   return (
-    <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white">
+    <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white">
       {/* Frosted Glass Navbar */}
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-neutral-200/40">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -169,12 +169,13 @@ export default function GoalsPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Global Language Switcher Buttons */}
             <div className="inline-flex p-0.5 rounded-full bg-neutral-100 border border-neutral-200/60 text-[11px] font-medium">
               {(["en", "ms", "ar"] as Language[]).map((locale) => (
                 <button
                   key={locale}
                   type="button"
-                  onClick={() => setLang(locale)}
+                  onClick={() => setLanguage(locale)}
                   className={`px-2.5 py-1 rounded-full transition cursor-pointer ${
                     lang === locale
                       ? "bg-white text-neutral-950 shadow-xs font-semibold"
@@ -261,7 +262,7 @@ export default function GoalsPage() {
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white text-neutral-950 hover:bg-neutral-100 text-xs font-semibold tracking-tight transition shrink-0 cursor-pointer"
           >
             <span>{t.ctaText}</span>
-            <ArrowRight className={`w-3.5 h-3.5 ${isRtl ? "rotate-180" : ""}`} />
+            <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
           </Link>
         </div>
       </section>
