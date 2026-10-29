@@ -26,6 +26,47 @@ import html2canvas from "html2canvas-pro";
 import { jsPDF } from "jspdf";
 import { supabase } from "@/lib/supabase";
 
+const JUZ_PAGE_RANGES = [
+  { juz: 1, start: 1, end: 21 },
+  { juz: 2, start: 22, end: 41 },
+  { juz: 3, start: 42, end: 61 },
+  { juz: 4, start: 62, end: 81 },
+  { juz: 5, start: 82, end: 101 },
+  { juz: 6, start: 102, end: 121 },
+  { juz: 7, start: 122, end: 141 },
+  { juz: 8, start: 142, end: 161 },
+  { juz: 9, start: 162, end: 181 },
+  { juz: 10, start: 182, end: 201 },
+  { juz: 11, start: 202, end: 221 },
+  { juz: 12, start: 222, end: 241 },
+  { juz: 13, start: 242, end: 261 },
+  { juz: 14, start: 262, end: 281 },
+  { juz: 15, start: 282, end: 301 },
+  { juz: 16, start: 302, end: 321 },
+  { juz: 17, start: 322, end: 341 },
+  { juz: 18, start: 342, end: 361 },
+  { juz: 19, start: 362, end: 381 },
+  { juz: 20, start: 382, end: 401 },
+  { juz: 21, start: 402, end: 421 },
+  { juz: 22, start: 422, end: 441 },
+  { juz: 23, start: 442, end: 461 },
+  { juz: 24, start: 462, end: 481 },
+  { juz: 25, start: 482, end: 501 },
+  { juz: 26, start: 502, end: 521 },
+  { juz: 27, start: 522, end: 541 },
+  { juz: 28, start: 542, end: 561 },
+  { juz: 29, start: 562, end: 581 },
+  { juz: 30, start: 582, end: 604 },
+];
+
+export function getJuzFromPage(pageNumber: number): number {
+  if (!pageNumber || pageNumber <= 0) return 1;
+  const match = JUZ_PAGE_RANGES.find(
+    (range) => pageNumber >= range.start && pageNumber <= range.end
+  );
+  return match ? match.juz : Math.min(30, Math.max(1, Math.ceil(pageNumber / 20)));
+}
+
 // --- TYPES ---
 type Track = "Recitation (Tilawah / Nazirah)" | "Memorization (Hifz)";
 type ProficiencyLevel = "low" | "medium" | "good" | "mastery";
@@ -295,11 +336,11 @@ export default function AdminDashboard() {
           tilawahJuz: row.tilawah_juz,
           tilawahPage: row.tilawah_page,
           completedTilawahJuzs: row.completed_tilawah_juzs || [row.tilawah_juz],
-          tilawahPages: row.tilawah_pages || [],
+          tilawahPages: row.tilawah_pages || row.read_pages || [],
           hifzJuz: row.hifz_juz,
           hifzPage: row.hifz_page,
           completedHifzJuzs: row.completed_hifz_juzs || [row.hifz_juz],
-          memorizedPages: row.memorized_pages || [],
+          memorizedPages: row.memorized_pages || row.hifz_pages || [],
           juzMemoryStrength: row.juz_memory_strength || {},
           weeklyGoal: row.weekly_goal,
           paymentStatus: row.payment_status as PaymentStatus,
@@ -519,13 +560,23 @@ export default function AdminDashboard() {
     await loadSupabaseData();
   };
 
+  // --- AUTO-TALLY FUNCTIONS (GRID CLICKS AUTO-FILL UPPER BOXES) ---
   const toggleTilawahPage = (pageNum: number) => {
     if (!quickPageStudent) return;
     const current = quickPageStudent.tilawahPages || [];
     const updated = current.includes(pageNum)
       ? current.filter((p) => p !== pageNum)
       : [...current, pageNum].sort((a, b) => a - b);
-    setQuickPageStudent({ ...quickPageStudent, tilawahPages: updated });
+    
+    const latestPage = updated.length > 0 ? Math.max(...updated) : 1;
+    const computedJuz = getJuzFromPage(latestPage);
+
+    setQuickPageStudent({ 
+      ...quickPageStudent, 
+      tilawahPages: updated,
+      tilawahPage: latestPage,
+      tilawahJuz: computedJuz
+    });
   };
 
   const toggleTilawahJuzPages = (juzNum: number) => {
@@ -549,10 +600,15 @@ export default function AdminDashboard() {
       ? currentJuzs.filter((j) => j !== juzNum)
       : Array.from(new Set([...currentJuzs, juzNum])).sort((a, b) => a - b);
 
+    const latestPage = updatedPages.length > 0 ? Math.max(...updatedPages) : 1;
+    const computedJuz = getJuzFromPage(latestPage);
+
     setQuickPageStudent({
       ...quickPageStudent,
       tilawahPages: updatedPages,
-      completedTilawahJuzs: updatedJuzs
+      completedTilawahJuzs: updatedJuzs,
+      tilawahPage: latestPage,
+      tilawahJuz: computedJuz
     });
   };
 
@@ -562,7 +618,16 @@ export default function AdminDashboard() {
     const updated = current.includes(pageNum)
       ? current.filter((p) => p !== pageNum)
       : [...current, pageNum].sort((a, b) => a - b);
-    setQuickPageStudent({ ...quickPageStudent, memorizedPages: updated });
+
+    const latestPage = updated.length > 0 ? Math.max(...updated) : 1;
+    const computedJuz = getJuzFromPage(latestPage);
+
+    setQuickPageStudent({ 
+      ...quickPageStudent, 
+      memorizedPages: updated,
+      hifzPage: latestPage,
+      hifzJuz: computedJuz
+    });
   };
 
   const toggleHifzJuzPages = (juzNum: number) => {
@@ -591,11 +656,16 @@ export default function AdminDashboard() {
       currentStrengths[juzNum] = 80;
     }
 
+    const latestPage = updatedPages.length > 0 ? Math.max(...updatedPages) : 1;
+    const computedJuz = getJuzFromPage(latestPage);
+
     setQuickPageStudent({
       ...quickPageStudent,
       memorizedPages: updatedPages,
       completedHifzJuzs: updatedJuzs,
-      juzMemoryStrength: currentStrengths
+      juzMemoryStrength: currentStrengths,
+      hifzPage: latestPage,
+      hifzJuz: computedJuz
     });
   };
 
@@ -1067,7 +1137,11 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <span className="text-[10px] text-blue-600 font-medium">Page (1–604)</span>
-                      <input type="number" min="1" max="604" value={newTilawahPage} onChange={(e) => setNewTilawahPage(Number(e.target.value))} className="bg-white border border-blue-200 rounded-lg p-2 w-full font-bold" />
+                      <input type="number" min="1" max="604" value={newTilawahPage} onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setNewTilawahPage(val);
+                        setNewTilawahJuz(getJuzFromPage(val));
+                      }} className="bg-white border border-blue-200 rounded-lg p-2 w-full font-bold" />
                     </div>
                   </div>
                 </div>
@@ -1083,7 +1157,11 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <span className="text-[10px] text-purple-600 font-medium">Page (1–604)</span>
-                      <input type="number" min="1" max="604" value={newHifzPage} onChange={(e) => setNewHifzPage(Number(e.target.value))} className="bg-white border border-purple-200 rounded-lg p-2 w-full font-bold" />
+                      <input type="number" min="1" max="604" value={newHifzPage} onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setNewHifzPage(val);
+                        setNewHifzJuz(getJuzFromPage(val));
+                      }} className="bg-white border border-purple-200 rounded-lg p-2 w-full font-bold" />
                     </div>
                   </div>
                 </div>
@@ -1196,7 +1274,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* --- TRADITIONAL 604 GRID MODAL --- */}
+      {/* --- TRADITIONAL 604 GRID MODAL (NOW WITH AUTO-TALLY) --- */}
       {quickPageStudent && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-neutral-200 rounded-3xl shadow-2xl max-w-3xl w-full p-6 relative max-h-[92vh] overflow-y-auto">
@@ -1226,14 +1304,36 @@ export default function AdminDashboard() {
             <form onSubmit={handleSaveQuickPages} className="space-y-6 text-xs">
               {progressModalTab === "tilawah" ? (
                 <div className="space-y-6">
+                  {/* AUTO-TALLIED TILAWAH UPPER INPUTS */}
                   <div className="grid grid-cols-2 gap-3 bg-blue-50/40 p-3.5 rounded-2xl border border-blue-200">
                     <div>
                       <label className="text-[10px] text-blue-700 font-semibold">Current Tilawah Juz (1–30)</label>
-                      <input type="number" min="1" max="30" value={quickPageStudent.tilawahJuz} onChange={(e) => setQuickPageStudent({ ...quickPageStudent, tilawahJuz: Number(e.target.value) })} className="w-full bg-white border border-blue-200 p-2 rounded-xl font-bold mt-1" />
+                      <input 
+                        type="number" 
+                        min="1" 
+                        max="30" 
+                        value={quickPageStudent.tilawahJuz} 
+                        onChange={(e) => setQuickPageStudent({ ...quickPageStudent, tilawahJuz: Number(e.target.value) })} 
+                        className="w-full bg-white border border-blue-200 p-2 rounded-xl font-bold mt-1" 
+                      />
                     </div>
                     <div>
                       <label className="text-[10px] text-blue-700 font-semibold">Current Reading Page (1–604)</label>
-                      <input type="number" min="1" max="604" value={quickPageStudent.tilawahPage} onChange={(e) => setQuickPageStudent({ ...quickPageStudent, tilawahPage: Number(e.target.value) })} className="w-full bg-white border border-blue-200 p-2 rounded-xl font-bold mt-1" />
+                      <input 
+                        type="number" 
+                        min="1" 
+                        max="604" 
+                        value={quickPageStudent.tilawahPage} 
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setQuickPageStudent({ 
+                            ...quickPageStudent, 
+                            tilawahPage: val,
+                            tilawahJuz: getJuzFromPage(val)
+                          });
+                        }} 
+                        className="w-full bg-white border border-blue-200 p-2 rounded-xl font-bold mt-1" 
+                      />
                     </div>
                   </div>
 
@@ -1301,14 +1401,36 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="space-y-6">
+                  {/* AUTO-TALLIED HIFZ UPPER INPUTS */}
                   <div className="grid grid-cols-2 gap-3 bg-purple-50/40 p-3.5 rounded-2xl border border-purple-200">
                     <div>
                       <label className="text-[10px] text-purple-700 font-semibold">Current Hifz Juz (1–30)</label>
-                      <input type="number" min="1" max="30" value={quickPageStudent.hifzJuz} onChange={(e) => setQuickPageStudent({ ...quickPageStudent, hifzJuz: Number(e.target.value) })} className="w-full bg-white border border-purple-200 p-2 rounded-xl font-bold mt-1" />
+                      <input 
+                        type="number" 
+                        min="1" 
+                        max="30" 
+                        value={quickPageStudent.hifzJuz} 
+                        onChange={(e) => setQuickPageStudent({ ...quickPageStudent, hifzJuz: Number(e.target.value) })} 
+                        className="w-full bg-white border border-purple-200 p-2 rounded-xl font-bold mt-1" 
+                      />
                     </div>
                     <div>
                       <label className="text-[10px] text-purple-700 font-semibold">Current Memorization Page (1–604)</label>
-                      <input type="number" min="1" max="604" value={quickPageStudent.hifzPage} onChange={(e) => setQuickPageStudent({ ...quickPageStudent, hifzPage: Number(e.target.value) })} className="w-full bg-white border border-purple-200 p-2 rounded-xl font-bold mt-1" />
+                      <input 
+                        type="number" 
+                        min="1" 
+                        max="604" 
+                        value={quickPageStudent.hifzPage} 
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setQuickPageStudent({ 
+                            ...quickPageStudent, 
+                            hifzPage: val,
+                            hifzJuz: getJuzFromPage(val)
+                          });
+                        }} 
+                        className="w-full bg-white border border-purple-200 p-2 rounded-xl font-bold mt-1" 
+                      />
                     </div>
                   </div>
 
@@ -1394,11 +1516,11 @@ export default function AdminDashboard() {
                             </div>
                             <input 
                               type="range" min="0" max="100" 
-                              value={score}
+                              value={score} 
                               onChange={(e) => {
                                 const updated = { ...(quickPageStudent.juzMemoryStrength || {}), [juzNum]: Number(e.target.value) };
                                 setQuickPageStudent({ ...quickPageStudent, juzMemoryStrength: updated });
-                              }}
+                              }} 
                               className="w-full accent-black cursor-pointer h-1.5 bg-neutral-200 rounded-lg"
                             />
                           </div>
@@ -1557,9 +1679,9 @@ export default function AdminDashboard() {
                 <div className="bg-neutral-50 border border-neutral-200 p-4 rounded-2xl space-y-3">
                   <input 
                     type="range" min="1" max="100" 
-                    value={evalFluency}
-                    onChange={(e) => setEvalFluency(Number(e.target.value))}
-                    className="w-full accent-black cursor-pointer h-2 bg-neutral-200 rounded-lg"
+                    value={evalFluency} 
+                    onChange={(e) => setEvalFluency(Number(e.target.value))} 
+                    className="w-full accent-black cursor-pointer h-2 bg-neutral-200 rounded-lg" 
                   />
                   <div className="w-full h-2 rounded-full overflow-hidden bg-neutral-200">
                     <div className="h-full transition-all duration-200" style={{ width: `${evalFluency}%`, backgroundColor: getFluencyHueStyle(evalFluency).barColor }} />
@@ -1646,11 +1768,11 @@ export default function AdminDashboard() {
               <div>
                 <label className="block font-bold text-neutral-900 mb-1">5. Tutor Custom Notes</label>
                 <textarea 
-                  rows={3}
-                  value={evalNotes}
-                  onChange={(e) => setEvalNotes(e.target.value)}
-                  placeholder="e.g. Focus on throat articulation during Friday sessions..."
-                  className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl p-3 text-xs focus:bg-white focus:outline-none"
+                  rows={3} 
+                  value={evalNotes} 
+                  onChange={(e) => setEvalNotes(e.target.value)} 
+                  placeholder="e.g. Focus on throat articulation during Friday sessions..." 
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl p-3 text-xs focus:bg-white focus:outline-none" 
                 />
               </div>
 
@@ -1681,7 +1803,7 @@ export default function AdminDashboard() {
               <div className="flex flex-wrap items-center gap-2">
                 <button 
                   type="button" 
-                  onClick={() => setEditingStudent(selectedStudent)}
+                  onClick={() => setEditingStudent(selectedStudent)} 
                   className="bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 transition cursor-pointer"
                   title="Edit Student Info"
                 >
@@ -1690,7 +1812,7 @@ export default function AdminDashboard() {
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => handleDeleteStudent(selectedStudent.id, selectedStudent.name)}
+                  onClick={() => handleDeleteStudent(selectedStudent.id, selectedStudent.name)} 
                   className="bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 border border-rose-200 transition cursor-pointer"
                   title="Delete Student Record"
                 >
@@ -1701,7 +1823,7 @@ export default function AdminDashboard() {
                 {/* 3 Program Tabs */}
                 <div className="flex gap-1 p-1 bg-neutral-100 rounded-full ml-1">
                   <button 
-                    onClick={() => setReportTab("tajweed")}
+                    onClick={() => setReportTab("tajweed")} 
                     className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
                       reportTab === "tajweed" ? "bg-black text-white shadow-xs" : "text-neutral-600 hover:text-black"
                     }`}
@@ -1709,7 +1831,7 @@ export default function AdminDashboard() {
                     Tajweed Core
                   </button>
                   <button 
-                    onClick={() => setReportTab("hifz")}
+                    onClick={() => setReportTab("hifz")} 
                     className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
                       reportTab === "hifz" ? "bg-black text-white shadow-xs" : "text-neutral-600 hover:text-black"
                     }`}
@@ -1717,7 +1839,7 @@ export default function AdminDashboard() {
                     Hifz Program
                   </button>
                   <button 
-                    onClick={() => setReportTab("sanad")}
+                    onClick={() => setReportTab("sanad")} 
                     className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
                       reportTab === "sanad" ? "bg-black text-white shadow-xs" : "text-neutral-600 hover:text-black"
                     }`}
@@ -1809,8 +1931,8 @@ export default function AdminDashboard() {
 
                           <div className="w-full bg-emerald-100/90 h-1.5 rounded-full overflow-hidden mt-1">
                             <div 
-                              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-300"
-                              style={{ width: `${kpiPercent}%` }}
+                              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-300" 
+                              style={{ width: `${kpiPercent}%` }} 
                             />
                           </div>
                         </div>
@@ -1887,7 +2009,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* SLICK, COMPACT 30 JUZ CARDS */}
+                  {/* 30 JUZ CARDS */}
                   <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-3">
                     <div className="flex justify-between items-center border-b border-neutral-200/80 pb-2.5">
                       <div>
