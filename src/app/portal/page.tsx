@@ -3,28 +3,118 @@
 import { useState, useEffect, useRef, useMemo, Suspense, ChangeEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
-import { 
-  Lock, 
-  BookOpen, 
-  CheckCircle2, 
-  Clock, 
-  Upload, 
-  FileText, 
-  FileImage, 
-  ArrowLeft, 
-  Sparkles, 
-  ShieldCheck, 
-  CalendarCheck, 
-  AlertCircle, 
-  ExternalLink, 
-  ChevronRight, 
-  Loader2, 
-  X, 
-  Award, 
-  BarChart3, 
-  RotateCcw 
+import {
+  Video,
+  Award,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  ShieldCheck,
+  ArrowLeft,
+  Loader2,
+  ExternalLink,
+  UploadCloud,
+  Receipt,
+  Star,
+  Check,
+  AlertCircle,
+  Sparkles,
+  BookOpen,
+  Lock,
+  Upload,
+  FileText,
+  FileImage,
+  X,
+  RotateCcw,
+  BarChart3
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useLanguage } from "@/context/LanguageContext";
+
+// Translation Dictionary for English, Bahasa Melayu, and Arabic
+const translations = {
+  en: {
+    portalTitle: "Pocket Tahfiz Parent & Student Portal",
+    activeMentorship: "Active Mentorship",
+    liveClassroom: "1-on-1 Online Classroom",
+    liveClassroomTitle: "Live Classroom Link",
+    enterMeeting: "Enter Google Meet / Zoom",
+    performanceTitle: "Student Performance & Evaluation",
+    fluencyTitle: "Recitation Fluency & Mastery",
+    remarksTitle: "Ustaz's Remarks & Advice",
+    invoiceTitle: "Tuition Fee Invoice",
+    receiptUpload: "Upload Transfer Receipt",
+    verifiedDone: "Completed",
+    attendanceTitle: "Attendance & Session Sign-Off Ledger",
+    quranMapTitle: "604-Page Quran Progress Map",
+    tilawah: "Tilawah",
+    hifz: "Hifz",
+    reviewTitle: "Teacher Evaluation & Feedback",
+    submitReview: "Submit Review",
+    confirmAttended: "Confirm Attended",
+    revoke: "Revoke",
+    // New Lock Screen Translations
+    studentAccess: "Student Access",
+    referAdmin: "To access your student card, please refer to the administration.",
+    contactAdmin: "Contact Administration",
+    returnHome: "Return Home",
+    mentorshipSystem: "Pocket Tahfiz Mentorship System"
+  },
+  ms: {
+    portalTitle: "Portal Ibu Bapa & Pelajar Pocket Tahfiz",
+    activeMentorship: "Bimbingan Aktif",
+    liveClassroom: "Kelas Dalam Talian 1-ke-1",
+    liveClassroomTitle: "Pautan Kelas Langsung",
+    enterMeeting: "Masuk Google Meet / Zoom",
+    performanceTitle: "Prestasi & Penilaian Pelajar",
+    fluencyTitle: "Kelancaran & Penguasaan Tajwid",
+    remarksTitle: "Ulasan & Nasihat Ustaz",
+    invoiceTitle: "Invois Yuran Pengajian",
+    receiptUpload: "Muat Naik Resit Pembayaran",
+    verifiedDone: "Selesai",
+    attendanceTitle: "Lejar Pengesahan Kehadiran & Sesi",
+    quranMapTitle: "Peta Kemajuan 604 Muka Surat Al-Quran",
+    tilawah: "Tilawah",
+    hifz: "Hifz",
+    reviewTitle: "Penilaian & Maklum Balas Guru",
+    submitReview: "Hantar Ulasan",
+    confirmAttended: "Sahkan Hadir",
+    revoke: "Batal Pengesahan",
+    // New Lock Screen Translations
+    studentAccess: "Akses Pelajar",
+    referAdmin: "Untuk mengakses kad pelajar anda, sila rujuk kepada pihak pentadbiran.",
+    contactAdmin: "Hubungi Pentadbiran",
+    returnHome: "Kembali ke Laman Utama",
+    mentorshipSystem: "Sistem Bimbingan Pocket Tahfiz"
+  },
+  ar: {
+    portalTitle: "بوابة الطالب وأولياء الأمور - بوكيت تحفيظ",
+    activeMentorship: "إشراف نشط",
+    liveClassroom: "فصل دراسي فردي عبر الإنترنت",
+    liveClassroomTitle: "رابط الفصل المباشر",
+    enterMeeting: "الدخول إلى Google Meet / Zoom",
+    performanceTitle: "أداء وتقييم الطالب",
+    fluencyTitle: "طلاقة التلاوة وإتقان التجويد",
+    remarksTitle: "ملاحظات وتوجيهات الأستاذ",
+    invoiceTitle: "فاتورة الرسوم الدراسية",
+    receiptUpload: "رفع إيصال التحويل",
+    verifiedDone: "مكتمل",
+    attendanceTitle: "سجل تأكيد الحضور والجلسات",
+    quranMapTitle: "خريطة تقدم صفحات القرآن (604 صفحة)",
+    tilawah: "تلاوة",
+    hifz: "حفظ",
+    reviewTitle: "تقييم المعلم والملاحظات",
+    submitReview: "إرسال التقييم",
+    confirmAttended: "تأكيد الحضور",
+    revoke: "إلغاء التأكيد",
+    // New Lock Screen Translations
+    studentAccess: "دخول الطالب",
+    referAdmin: "للوصول إلى بطاقة الطالب الخاصة بك، يرجى مراجعة الإدارة.",
+    contactAdmin: "الاتصال بالإدارة",
+    returnHome: "العودة إلى الصفحة الرئيسية",
+    mentorshipSystem: "نظام التوجيه بوكيت تحفيظ"
+  }
+};
 
 interface Student {
   id: string;
@@ -54,11 +144,31 @@ interface Student {
   remarks?: string;
   remarks_date?: string;
   receipt_url?: string;
+  class_link?: string;
+  teacher_name?: string;
+  teacher_credentials?: string;
+}
+
+interface SessionItem {
+  id: string;
+  session_number: number;
+  session_date: string;
+  tutor_verified: boolean;
+  student_verified: boolean;
+  status: string;
+}
+
+interface InvoiceItem {
+  id: string;
+  student_id: string;
+  invoice_number: string;
+  status: "paid" | "unpaid" | "verifying";
+  due_date: string;
+  receipt_url?: string;
 }
 
 // --- PROFICIENCY STYLING (MATCHES ADMIN EXACTLY) ---
 type ProficiencyLevel = "low" | "medium" | "good" | "mastery";
-
 const PROFICIENCY_CONFIG: Record<
   ProficiencyLevel,
   { label: string; bg: string; border: string; text: string; badge: string }
@@ -167,7 +277,6 @@ const formatJuzRanges = (juzs?: number[]) => {
   const ranges: string[] = [];
   let start = sorted[0];
   let end = start;
-
   for (let i = 1; i < sorted.length; i++) {
     if (sorted[i] === end + 1) {
       end = sorted[i];
@@ -192,6 +301,17 @@ const getMemoryHueStyle = (score: number) => {
   }
 };
 
+const getFluencyStyle = (score: number) => {
+  const safe = Math.max(0, Math.min(100, score));
+  if (safe <= 50) {
+    return { bg: "#FFF1F2", border: "#FECDD3", text: "#9F1239", barColor: "#F43F5E", label: "Needs Attention" };
+  } else if (safe <= 79) {
+    return { bg: "#FEF3C7", border: "#FDE68A", text: "#92400E", barColor: "#F59E0B", label: "Fluent" };
+  } else {
+    return { bg: "#D1FAE5", border: "#A7F3D0", text: "#065F46", barColor: "#10B981", label: "Highly Proficient" };
+  }
+};
+
 function parsePagesData(raw: any): number[] {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw.map(Number).filter((n) => !isNaN(n) && n > 0 && n <= 604);
@@ -213,9 +333,16 @@ function StudentPortalContent() {
   const searchParams = useSearchParams();
   const studentId = searchParams.get("id");
 
+  // Consume our persisted language context memory box
+  const { lang, setLanguage, isRTL } = useLanguage();
+  const t = translations[lang] || translations.en;
+
   const [student, setStudent] = useState<Student | null>(null);
   const [latestEval, setLatestEval] = useState<any>(null);
+  const [sessions, setSessions] = useState<SessionItem[]>([]);
+  const [invoice, setInvoice] = useState<InvoiceItem | null>(null);
   const [loading, setLoading] = useState(true);
+
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [signingAttendance, setSigningAttendance] = useState(false);
@@ -223,6 +350,7 @@ function StudentPortalContent() {
   
   // 1. Defaults 604 grid to open on load
   const [showGridModal, setShowGridModal] = useState(true);
+  const [activeTab, setActiveTab] = useState<"tilawah" | "hifz">("tilawah");
 
   // 2. 3-Program views: tajweed | hifz | sanad
   const [showReportModal, setShowReportModal] = useState(false);
@@ -230,15 +358,20 @@ function StudentPortalContent() {
   const [isExporting, setIsExporting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
+  // Star Ratings & reviews
+  const [rating, setRating] = useState<number>(5);
+  const [hoverRating, setHoverRating] = useState<number>(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+
   useEffect(() => {
     if (!studentId) {
       setLoading(false);
       return;
     }
-
     async function fetchStudentAndEvaluation() {
       try {
-        // 1. Fetch Student Record
         const { data: stData, error: stError } = await supabase
           .from("students")
           .select("*")
@@ -246,9 +379,26 @@ function StudentPortalContent() {
           .single();
 
         if (stError) throw stError;
-        setStudent(stData);
 
-        // 2. Fetch Latest Evaluation Record (Rubric, Fluency & Feedback)
+        const normalizedStudent = {
+          ...stData,
+          id: stData.id,
+          name: stData.name,
+          age: stData.age,
+          location: stData.location,
+          class_link: stData.class_link || "https://meet.google.com/",
+          teacher_name: stData.teacher_name || "Ustaz Salman Zulkifle",
+          teacher_credentials: stData.teacher_credentials || "B.A. Islamic Studies (Mu'tah University), Classical Qira'at Specialist",
+          total_sessions: stData.total_sessions || 12,
+          completed_sessions: stData.completed_sessions || 0,
+          tilawah_page: stData.tilawah_page || 1,
+          tilawah_pages: stData.tilawah_pages || [],
+          hifz_page: stData.hifz_page || 1,
+          memorized_pages: stData.memorized_pages || []
+        };
+        setStudent(normalizedStudent);
+
+        // Fetch Latest Evaluation Record
         const { data: evData, error: evError } = await supabase
           .from("student_evaluations")
           .select("*")
@@ -259,13 +409,57 @@ function StudentPortalContent() {
         if (!evError && evData && evData.length > 0) {
           setLatestEval(evData[0]);
         }
+
+        // Fetch Class Sessions
+        const { data: sessData } = await supabase
+          .from("class_sessions")
+          .select("*")
+          .eq("student_id", stData.id)
+          .order("session_number", { ascending: true });
+
+        if (sessData && sessData.length > 0) {
+          setSessions(sessData);
+        } else {
+          const defaults: SessionItem[] = Array.from({ length: stData.total_sessions || 12 }, (_, i) => ({
+            id: String(i + 1),
+            session_number: i + 1,
+            session_date: new Date().toISOString().split("T")[0],
+            tutor_verified: i < (stData.completed_sessions || 0),
+            student_verified: i < (stData.completed_sessions || 0),
+            status: i < (stData.completed_sessions || 0) ? "done" : "pending"
+          }));
+          setSessions(defaults);
+        }
+
+        // Fetch Invoices
+        const { data: invData } = await supabase
+          .from("invoices")
+          .select("*")
+          .eq("student_id", stData.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (invData) {
+          setInvoice(invData);
+        } else {
+          const newInvoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+          const defaultInv = {
+            student_id: stData.id,
+            invoice_number: newInvoiceNumber,
+            status: (stData.payment_status === "Paid" ? "paid" : "unpaid") as "paid" | "unpaid",
+            due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+          };
+          const { data: createdInv } = await supabase.from("invoices").insert(defaultInv).select().single();
+          if (createdInv) setInvoice(createdInv);
+        }
+
       } catch (err) {
         console.error("Error fetching student profile:", err);
       } finally {
         setLoading(false);
       }
     }
-
     fetchStudentAndEvaluation();
   }, [studentId]);
 
@@ -291,6 +485,7 @@ function StudentPortalContent() {
   const targetGoalPage = tilawahMarker + monthlyTargetPgs;
   const achievedPgs = totalPagesRecited || tilawahMarker;
   const kpiPercentage = Math.min(100, Math.round((achievedPgs / Math.max(1, monthlyTargetPgs)) * 100));
+
   const fluencyScore = latestEval?.fluency_score ?? (typeof student?.fluency_rating === "number" ? student.fluency_rating : 80);
 
   // Sanad / Tilawah file naming mapper
@@ -309,7 +504,6 @@ function StudentPortalContent() {
         .from("students")
         .update({ completed_sessions: newSessionCount })
         .eq("id", student.id);
-
       if (error) throw error;
       setStudent((prev) => prev ? { ...prev, completed_sessions: newSessionCount } : null);
     } catch (err: any) {
@@ -322,7 +516,6 @@ function StudentPortalContent() {
   const handleRevokeAttendance = async () => {
     if (!student || (student.completed_sessions || 0) <= 0) return;
     if (!window.confirm("Are you sure you want to revoke the last completed session?")) return;
-
     setRevokingAttendance(true);
     try {
       const newSessionCount = Math.max(0, (student.completed_sessions || 0) - 1);
@@ -330,7 +523,6 @@ function StudentPortalContent() {
         .from("students")
         .update({ completed_sessions: newSessionCount })
         .eq("id", student.id);
-
       if (error) throw error;
       setStudent((prev) => prev ? { ...prev, completed_sessions: newSessionCount } : null);
     } catch (err: any) {
@@ -342,15 +534,13 @@ function StudentPortalContent() {
 
   const handleReceiptUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !student) return;
+    if (!file || !student || !invoice) return;
     setUploadingReceipt(true);
     setUploadSuccess(false);
-
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${student.id}_receipt_${Date.now()}.${fileExt}`;
       const filePath = `receipts/${fileName}`;
-
       const { error: uploadError } = await supabase.storage
         .from("receipts")
         .upload(filePath, file, { upsert: true });
@@ -368,12 +558,39 @@ function StudentPortalContent() {
 
       if (updateError) throw updateError;
 
+      await supabase
+        .from("invoices")
+        .update({ receipt_url: publicUrl, status: "verifying" })
+        .eq("id", invoice.id);
+
+      setInvoice({ ...invoice, receipt_url: publicUrl, status: "verifying" });
       setStudent((prev) => prev ? { ...prev, receipt_url: publicUrl, tuition_status: "Pending Verification" } : null);
       setUploadSuccess(true);
     } catch (err: any) {
       alert(err.message || "Failed to upload receipt.");
     } finally {
       setUploadingReceipt(false);
+    }
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!student) return;
+    setSubmittingReview(true);
+    try {
+      const { error } = await supabase.from("teacher_reviews").insert({
+        student_id: student.id,
+        rating,
+        comment: reviewComment,
+        created_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      setReviewSubmitted(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert("Error submitting review: " + message);
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -392,12 +609,10 @@ function StudentPortalContent() {
         scrollY: 0,
         scrollX: 0,
       });
-
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${student?.name || "Student"}_${getReportLabel(reportTab)}_Report.pdf`);
     } catch (err) {
@@ -414,7 +629,6 @@ function StudentPortalContent() {
     try {
       const html2canvasModule = await import("html2canvas-pro");
       const html2canvas = html2canvasModule.default || html2canvasModule;
-
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         useCORS: true,
@@ -422,7 +636,6 @@ function StudentPortalContent() {
         scrollY: 0,
         scrollX: 0,
       });
-
       const link = document.createElement("a");
       link.download = `${student?.name || "Student"}_${getReportLabel(reportTab)}_Report.png`;
       link.href = canvas.toDataURL("image/png");
@@ -437,15 +650,48 @@ function StudentPortalContent() {
 
   if (!studentId || (!loading && !student)) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 selection:bg-white selection:text-black">
+      <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 selection:bg-white selection:text-black">
+        {/* Floating Top Bar for Language Switcher on Locked Screen */}
+        <div className="absolute top-6 right-6 flex items-center bg-neutral-900 rounded-full p-1 border border-neutral-800">
+          <button
+            type="button"
+            onClick={() => setLanguage("en")}
+            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+              lang === "en" ? "bg-white text-black shadow-xs" : "text-neutral-500 hover:text-white"
+            }`}
+          >
+            EN
+          </button>
+          <button
+            type="button"
+            onClick={() => setLanguage("ms")}
+            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+              lang === "ms" ? "bg-white text-black shadow-xs" : "text-neutral-500 hover:text-white"
+            }`}
+          >
+            BM
+          </button>
+          <button
+            type="button"
+            onClick={() => setLanguage("ar")}
+            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+              lang === "ar" ? "bg-white text-black shadow-xs" : "text-neutral-500 hover:text-white"
+            }`}
+          >
+            العربية
+          </button>
+        </div>
+
         <div className="max-w-md w-full flex flex-col items-center text-center space-y-7">
           <div className="w-14 h-14 rounded-2xl bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-2xl">
             <Lock className="w-6 h-6 text-neutral-400" />
           </div>
           <div className="space-y-3">
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">Student Access</h1>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white font-sans">
+              {t.studentAccess}
+            </h1>
             <p className="text-sm text-neutral-400 font-normal leading-relaxed max-w-xs mx-auto">
-              To access your student card, please refer to the administration.
+              {t.referAdmin}
             </p>
           </div>
           <div className="pt-2 flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
@@ -455,18 +701,18 @@ function StudentPortalContent() {
               rel="noopener noreferrer"
               className="w-full sm:w-auto px-7 py-3 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-semibold tracking-tight transition cursor-pointer"
             >
-              Contact Administration
+              {t.contactAdmin}
             </a>
             <Link
               href="/"
               className="w-full sm:w-auto px-7 py-3 rounded-full bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-medium text-neutral-400 hover:text-white transition cursor-pointer"
             >
-              Return Home
+              {t.returnHome}
             </Link>
           </div>
           <div className="pt-8">
             <span className="text-[10px] tracking-widest uppercase font-mono text-neutral-600">
-              Pocket Tahfiz Mentorship System
+              {t.mentorshipSystem}
             </span>
           </div>
         </div>
@@ -487,23 +733,67 @@ function StudentPortalContent() {
 
   const totalSessions = student?.package_sessions || student?.total_sessions || 12;
   const completedSessions = student?.completed_sessions || 0;
+  const verifiedDoneCount = sessions.filter((s) => s.tutor_verified && s.student_verified).length;
+  const fluencyInfo = latestEval ? getFluencyStyle(latestEval.fluency_score ?? 80) : null;
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white pb-20">
-      <header className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b border-neutral-200/60">
-        <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2 text-xs font-medium text-neutral-500 hover:text-black transition">
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Pocket Tahfiz</span>
-          </Link>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200/80 text-[11px] font-medium text-neutral-700">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Active Mentorship Portal</span>
+    <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-[#f5f5f7] text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white pb-20">
+      
+      {/* Top Header Navbar */}
+      <header className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b border-neutral-200/60 px-6">
+        <div className="max-w-4xl mx-auto h-14 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="p-2 text-neutral-404 hover:text-neutral-900 bg-neutral-100 rounded-full transition cursor-pointer">
+              <ArrowLeft className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
+            </Link>
+            <div>
+              <span className="text-xs font-bold text-neutral-950 block leading-tight">{student?.name}</span>
+              <span className="text-[10px] text-neutral-400 font-medium">{t.portalTitle}</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {/* Language Switcher */}
+            <div className="flex items-center bg-neutral-100 rounded-full p-1 border border-neutral-200">
+              <button
+                type="button"
+                onClick={() => setLanguage("en")}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+                  lang === "en" ? "bg-white text-black shadow-xs" : "text-neutral-500 hover:text-black"
+                }`}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("ms")}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+                  lang === "ms" ? "bg-white text-black shadow-xs" : "text-neutral-500 hover:text-black"
+                }`}
+              >
+                BM
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("ar")}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+                  lang === "ar" ? "bg-white text-black shadow-xs" : "text-neutral-500 hover:text-black"
+                }`}
+              >
+                العربية
+              </button>
+            </div>
+            
+            <span className="hidden sm:inline-block px-3 py-1 rounded-full text-[10px] font-bold bg-neutral-100 border border-neutral-200 text-neutral-800">
+              {t.activeMentorship}
+            </span>
           </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-6 pt-10 space-y-6">
+        
+        {/* Student Welcome Header Card */}
         <div className="bg-white rounded-3xl p-8 border border-neutral-200/70 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="space-y-1.5">
             <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-400">
@@ -518,7 +808,7 @@ function StudentPortalContent() {
               <span>{student?.location || "Not specified"}</span>
             </p>
           </div>
-
+          
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
               student?.tuition_status === "Paid" || student?.payment_status === "Paid"
@@ -529,9 +819,11 @@ function StudentPortalContent() {
             }`}>
               Tuition: {student?.tuition_status || student?.payment_status || "Pending"}
             </span>
-
             <button
-              onClick={() => setShowReportModal(true)}
+              onClick={() => {
+                setReportTab("tajweed");
+                setShowReportModal(true);
+              }}
               className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-semibold tracking-tight shadow-xs transition cursor-pointer"
             >
               <FileText className="w-3.5 h-3.5" />
@@ -540,6 +832,30 @@ function StudentPortalContent() {
           </div>
         </div>
 
+        {/* 1. Live Google Meet Classroom (Brought from Local branch) */}
+        <div className="bg-neutral-950 text-white p-6 rounded-3xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold text-neutral-300">
+              <Video className="w-3 h-3 text-emerald-400" />
+              <span>{t.liveClassroom}</span>
+            </div>
+            <h2 className="text-xl font-extrabold tracking-tight">{t.liveClassroomTitle}</h2>
+            <p className="text-xs text-neutral-400">
+              Classes are conducted via Google Meet / Zoom. Click below to enter your session.
+            </p>
+          </div>
+          <a
+            href={student?.class_link || "https://meet.google.com/"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-white hover:bg-neutral-100 text-neutral-950 px-6 py-3 rounded-full text-xs font-bold inline-flex items-center justify-center gap-2 transition shadow-xs shrink-0 cursor-pointer"
+          >
+            <span>{t.enterMeeting}</span>
+            <ExternalLink className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
+          </a>
+        </div>
+
+        {/* Progression Overview Split (Hifz & Tilawah stats) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-3xl p-6 border border-neutral-200/70 shadow-xs flex flex-col justify-between">
             <div>
@@ -559,7 +875,6 @@ function StudentPortalContent() {
                 Current Marker: Page {tilawahMarker} (Juz {Math.ceil(tilawahMarker / 20)})
               </p>
             </div>
-
             <div className="mt-6 space-y-2">
               <div className="w-full bg-neutral-100 rounded-full h-2 overflow-hidden">
                 <div 
@@ -592,7 +907,6 @@ function StudentPortalContent() {
                 Memorized: {memorizedPagesList.length} pages recorded
               </p>
             </div>
-
             <div className="mt-6 space-y-2">
               <div className="w-full bg-neutral-100 rounded-full h-2 overflow-hidden">
                 <div 
@@ -608,6 +922,7 @@ function StudentPortalContent() {
           </div>
         </div>
 
+        {/* Density Matrix Visualizer Toggle bar */}
         <div className="bg-white rounded-3xl p-6 border border-neutral-200/70 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="space-y-1 text-center sm:text-left">
             <h3 className="text-sm font-semibold text-neutral-950">
@@ -625,6 +940,7 @@ function StudentPortalContent() {
           </button>
         </div>
 
+        {/* 604 Grid Box Coverage */}
         {showGridModal && (
           <div className="bg-white rounded-3xl p-6 border border-neutral-200/70 shadow-xs transition-all">
             <div className="flex items-center justify-between mb-4">
@@ -659,7 +975,10 @@ function StudentPortalContent() {
           </div>
         )}
 
+        {/* Session Log & Tuition Verification Ledger Hub */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Left Block: Attendance Log */}
           <div className="bg-white rounded-3xl p-6 border border-neutral-200/70 shadow-xs flex flex-col justify-between">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -677,7 +996,7 @@ function StudentPortalContent() {
                 Confirm session completion alongside the tutor. Keep records clear with zero scheduling disputes.
               </p>
             </div>
-
+            
             <div className="pt-6 space-y-3">
               <div className="grid grid-cols-6 gap-2">
                 {Array.from({ length: totalSessions }).map((_, i) => (
@@ -693,7 +1012,6 @@ function StudentPortalContent() {
                   </div>
                 ))}
               </div>
-
               <button
                 disabled={signingAttendance || revokingAttendance || completedSessions >= totalSessions}
                 onClick={handleSignAttendance}
@@ -702,7 +1020,6 @@ function StudentPortalContent() {
                 {signingAttendance ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                 <span>Confirm Today's Completed Session</span>
               </button>
-
               {completedSessions > 0 && (
                 <button
                   type="button"
@@ -717,6 +1034,7 @@ function StudentPortalContent() {
             </div>
           </div>
 
+          {/* Right Block: Tuition Ledger & Invoice upload */}
           <div className="bg-white rounded-3xl p-6 border border-neutral-200/70 shadow-xs flex flex-col justify-between">
             <div className="space-y-2">
               <span className="text-[10px] uppercase tracking-wider font-semibold text-neutral-400">
@@ -729,16 +1047,16 @@ function StudentPortalContent() {
                 Upload your monthly transfer slip directly. Receipts are reviewed and stamped directly inside the console.
               </p>
             </div>
-
+            
             <div className="pt-6 space-y-4">
-              {student?.receipt_url ? (
+              {invoice?.receipt_url || student?.receipt_url ? (
                 <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-2xl flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 text-neutral-700">
                     <FileText className="w-4 h-4 text-neutral-500" />
                     <span className="font-medium truncate max-w-[170px]">Uploaded Receipt</span>
                   </div>
                   <a
-                    href={student.receipt_url}
+                    href={invoice?.receipt_url || student?.receipt_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-[11px] font-semibold text-neutral-900 hover:underline"
@@ -749,7 +1067,7 @@ function StudentPortalContent() {
                 </div>
               ) : (
                 <label className="border-2 border-dashed border-neutral-200 hover:border-neutral-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition bg-[#fafafa]">
-                  <Upload className="w-4 h-4 text-neutral-400" />
+                  <UploadCloud className="w-4 h-4 text-neutral-400" />
                   <span className="text-xs font-medium text-neutral-700">
                     {uploadingReceipt ? "Uploading receipt..." : "Upload Transfer Slip (PDF/JPG)"}
                   </span>
@@ -762,13 +1080,11 @@ function StudentPortalContent() {
                   />
                 </label>
               )}
-
               {uploadSuccess && (
                 <p className="text-[11px] text-emerald-600 font-medium text-center">
                   Receipt uploaded successfully! Awaiting tutor confirmation.
                 </p>
               )}
-
               <div className="p-3 rounded-2xl bg-[#f5f5f7] border border-neutral-200/70 text-[11px] text-neutral-500 space-y-1">
                 <span className="font-semibold text-neutral-900 block">Tuition Transfer Details:</span>
                 <p>Maybank: <span className="font-mono font-medium text-neutral-800">164221345678</span></p>
@@ -777,6 +1093,68 @@ function StudentPortalContent() {
             </div>
           </div>
         </div>
+
+        {/* Teacher Evaluation & Star Rating Feedback Box */}
+        <div className="bg-white border border-neutral-200/80 p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-4">
+          <div className="border-b border-neutral-100 pb-3">
+            <h3 className="text-sm font-bold text-neutral-950">{t.reviewTitle}</h3>
+            <p className="text-[11px] text-neutral-400">Leave a review for {student?.teacher_name || "your teacher"} to help improve mentorship quality.</p>
+          </div>
+          {reviewSubmitted ? (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center space-y-1">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 mx-auto" />
+              <p className="text-xs font-bold text-emerald-900">Thank you for your feedback!</p>
+              <p className="text-[11px] text-emerald-700">Your review has been recorded in the system.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-800 block">Rating:</label>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      className="p-1 text-neutral-300 hover:text-amber-400 transition cursor-pointer"
+                    >
+                      <Star
+                        className={`w-6 h-6 ${
+                          (hoverRating || rating) >= star
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-neutral-300"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <span className="text-xs font-bold text-neutral-700 ml-2">
+                    {rating} of 5 Stars
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-neutral-800 block">Comments / Feedback:</label>
+                <textarea
+                  rows={3}
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="e.g. Ustaz Salman is patient and very thorough with tajweed rules..."
+                  className="w-full bg-[#f8f9fb] border border-neutral-200 rounded-2xl p-3 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-950 focus:bg-white transition"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={submittingReview}
+                className="px-5 py-2.5 rounded-full bg-black text-white hover:bg-neutral-850 text-xs font-semibold tracking-tight transition disabled:bg-neutral-300 cursor-pointer shadow-xs"
+              >
+                {submittingReview ? "Submitting..." : t.submitReview}
+              </button>
+            </form>
+          )}
+        </div>
+
       </main>
 
       {/* ========================================================================= */}
@@ -816,7 +1194,6 @@ function StudentPortalContent() {
                   Tilawah Report
                 </button>
               </div>
-
               <button
                 onClick={() => setShowReportModal(false)}
                 className="p-2 rounded-full hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 transition cursor-pointer"
@@ -824,7 +1201,7 @@ function StudentPortalContent() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-
+            
             <div ref={reportRef} className="p-5 sm:p-8 space-y-6 bg-white">
               
               <div className="flex items-start justify-between pb-4 border-b border-neutral-100">
@@ -844,7 +1221,6 @@ function StudentPortalContent() {
                     </p>
                   </div>
                 </div>
-
                 <div className="text-right space-y-1">
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                     student?.tuition_status === "Paid" || student?.payment_status === "Paid"
@@ -872,7 +1248,6 @@ function StudentPortalContent() {
                         {formatJuzRanges(student?.completed_tilawah_juzs)} ({totalPagesRecited}/604 Pgs)
                       </span>
                     </div>
-
                     <div className="bg-purple-50/50 p-3.5 rounded-2xl border border-purple-200 flex flex-col justify-between">
                       <div>
                         <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Hifz Memorization</span>
@@ -882,12 +1257,10 @@ function StudentPortalContent() {
                         {formatJuzRanges(student?.completed_hifz_juzs)}
                       </span>
                     </div>
-
                     <div className="bg-emerald-50/60 p-3.5 rounded-2xl border border-emerald-200 flex flex-col justify-between space-y-1.5">
                       <span className="text-emerald-800 font-bold text-[10px] uppercase tracking-wider block">
                         Monthly Target vs KPI
                       </span>
-
                       <div className="flex items-baseline justify-between pt-0.5">
                         <div>
                           <span className="text-[9px] text-neutral-400 block font-medium uppercase">Target Goal</span>
@@ -901,7 +1274,6 @@ function StudentPortalContent() {
                           <span className="text-[9px] text-emerald-600 font-bold block">{kpiPercentage}% of KPI</span>
                         </div>
                       </div>
-
                       <div className="w-full bg-emerald-100/90 h-1.5 rounded-full overflow-hidden mt-1">
                         <div 
                           className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-300" 
@@ -921,13 +1293,11 @@ function StudentPortalContent() {
                         Fluency: {fluencyScore}%
                       </span>
                     </div>
-
                     <div className="grid grid-cols-7 sm:grid-cols-10 md:grid-cols-14 gap-1.5">
                       {ARABIC_LETTERS.map((letter) => {
                         const rawLvl = latestEval?.alphabet_ratings?.[letter] || "good";
                         const lvl = (rawLvl in PROFICIENCY_CONFIG ? rawLvl : "good") as ProficiencyLevel;
                         const cfg = PROFICIENCY_CONFIG[lvl];
-
                         return (
                           <div
                             key={letter}
@@ -945,13 +1315,11 @@ function StudentPortalContent() {
                     <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block border-b border-neutral-200 pb-1.5">
                       Tajweed Rules Breakdown
                     </span>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {TAJWEED_CATEGORIES.flatMap((cat) => cat.items).map((item) => {
                         const rawLvl = latestEval?.rule_ratings?.[item.id] || latestEval?.rule_ratings?.[item.label] || "good";
                         const lvl = (rawLvl in PROFICIENCY_CONFIG ? rawLvl : "good") as ProficiencyLevel;
                         const cfg = PROFICIENCY_CONFIG[lvl];
-
                         return (
                           <div key={item.id} className={`p-2.5 rounded-xl border flex justify-between items-center ${cfg.bg} ${cfg.border}`}>
                             <span className={`font-semibold text-[11px] ${cfg.text}`}>{item.label}</span>
@@ -977,13 +1345,11 @@ function StudentPortalContent() {
                         {(((memorizedPagesList.length) / 604) * 100).toFixed(1)}% Completed
                       </span>
                     </div>
-
                     <div className="bg-neutral-50 p-3.5 rounded-2xl border border-neutral-200">
                       <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Active Hifz Page</span>
                       <span className="font-extrabold text-neutral-950 block text-base mt-0.5">Pg {hifzMarker}</span>
                       <span className="text-[10px] text-neutral-600 font-medium block mt-0.5">Juz {student?.hifz_juz || Math.ceil(hifzMarker / 20)}</span>
                     </div>
-
                     <div className="bg-neutral-50 p-3.5 rounded-2xl border border-neutral-200">
                       <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Completed Juz</span>
                       <span className="font-extrabold text-neutral-950 block text-base mt-0.5">
@@ -1005,7 +1371,7 @@ function StudentPortalContent() {
                         {memorizedPagesList.length} / 604 Pages
                       </span>
                     </div>
-
+                    
                     <div className="grid grid-cols-5 sm:grid-cols-6 gap-2 pt-1">
                       {Array.from({ length: 30 }, (_, i) => i + 1).map((juzNum) => {
                         const { start, end } = getJuzPageRange(juzNum);
@@ -1021,7 +1387,6 @@ function StudentPortalContent() {
                         const percent = totalInJuz > 0 ? Math.min(100, Math.round((effectiveCount / totalInJuz) * 100)) : 0;
                         const isCompleted = percent === 100;
                         const hasProgress = effectiveCount > 0;
-
                         return (
                           <div key={juzNum} className="flex flex-col items-center">
                             <span className={`text-[9px] font-extrabold mb-1 tracking-tight ${
@@ -1033,7 +1398,6 @@ function StudentPortalContent() {
                             }`}>
                               JUZ {juzNum}
                             </span>
-
                             <div 
                               className={`relative w-full h-8 rounded-md overflow-hidden border transition-all ${
                                 isCompleted
@@ -1050,7 +1414,6 @@ function StudentPortalContent() {
                                   style={{ width: `${percent}%` }}
                                 />
                               )}
-
                               {!isCompleted && hasProgress && (
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                                   <span className="text-neutral-950 font-black text-[9px] tracking-tight">
@@ -1074,7 +1437,6 @@ function StudentPortalContent() {
                       ).map((juzNum) => {
                         const score = student?.juz_memory_strength?.[juzNum] ?? 80;
                         const style = getMemoryHueStyle(score);
-
                         return (
                           <div key={juzNum} className="p-2.5 bg-white rounded-xl border border-neutral-200 space-y-1.5">
                             <div className="flex justify-between items-center">
@@ -1128,7 +1490,6 @@ function StudentPortalContent() {
                         {tilawahPercentage}% of Mushaf
                       </span>
                     </div>
-
                     <div className="p-4 rounded-2xl bg-[#fafafa] border border-neutral-200/70">
                       <span className="text-[10px] uppercase font-mono tracking-wider text-neutral-400 block mb-1">
                         Current Tilawah Marker
@@ -1140,7 +1501,6 @@ function StudentPortalContent() {
                         Juz {Math.ceil(tilawahMarker / 20)}
                       </span>
                     </div>
-
                     <div className="p-4 rounded-2xl bg-[#fafafa] border border-neutral-200/70">
                       <span className="text-[10px] uppercase font-mono tracking-wider text-neutral-400 block mb-1">
                         Read Juzes
@@ -1157,7 +1517,7 @@ function StudentPortalContent() {
                   <div className="p-5 rounded-2xl border border-neutral-200/80 bg-white">
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <span className="text-xs font-bold text-neutral-950 block">
+                        <span className="text-xs font-bold text-neutral-955 block">
                           604 Traditional Mushaf Ledger
                         </span>
                         <span className="text-[10px] text-neutral-400">
@@ -1173,7 +1533,6 @@ function StudentPortalContent() {
                         </span>
                       </div>
                     </div>
-
                     <div className="grid grid-cols-24 sm:grid-cols-32 gap-1 p-3 bg-[#f5f5f7] rounded-xl max-h-64 overflow-y-auto">
                       {Array.from({ length: 604 }).map((_, index) => {
                         const pageNum = index + 1;
@@ -1208,15 +1567,15 @@ function StudentPortalContent() {
                     </span>
                   )}
                 </div>
-
                 <div className="pt-1">
                   <p className="text-neutral-800 text-xs leading-relaxed font-medium bg-white p-3 rounded-xl border border-neutral-200/70">
                     &ldquo;{latestEval?.tutor_notes || student?.remarks || "Good recitation, need more time spent to become more eloquent."}&rdquo;
                   </p>
                 </div>
               </div>
-            </div>
 
+            </div>
+            
             {/* MODAL FOOTER WITH SAFE FILENAME EXPORT */}
             <div className="p-4 border-t border-neutral-100 bg-[#f5f5f7] flex items-center gap-3">
               <button
@@ -1227,7 +1586,6 @@ function StudentPortalContent() {
                 {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                 <span>Download {reportTab === "sanad" ? "Tilawah" : reportTab === "hifz" ? "Hifz" : "Tajweed"} Report (PDF)</span>
               </button>
-
               <button
                 disabled={isExporting}
                 onClick={exportAsImage}
@@ -1237,9 +1595,11 @@ function StudentPortalContent() {
                 <span>Download {reportTab === "sanad" ? "Tilawah" : reportTab === "hifz" ? "Hifz" : "Tajweed"} Report (PNG)</span>
               </button>
             </div>
+
           </div>
         </div>
       )}
+
     </div>
   );
 }

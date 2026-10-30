@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { 
   Lock, 
@@ -14,7 +13,8 @@ import {
   ChevronRight
 } from "lucide-react";
 
-type Language = "en" | "ms" | "ar";
+// Import global language context hook
+import { useLanguage, Language } from "@/context/LanguageContext";
 
 interface TranslationContent {
   nav: {
@@ -161,7 +161,7 @@ const translations: Record<Language, TranslationContent> = {
       card2: {
         tag: "مصحف تفاعلي",
         title: "خريطة إنجاز المصحف (٦٠٤ صفحة)",
-        desc: "متابعة بصرية دقيقة لكل صفحة من المصحف الشريف، تشمل التلاوة اليومية وتثبيت الحفظ والمراجعة الدورية.",
+        desc: "متابعة بصرية دقيقة لكل صفحة من صفحات المصحف الشريف، تشمل التلاوة اليومية وتثبيت الحفظ والمراجعة الدورية.",
         stat: "٦٠٤ صفحات",
         statLabel: "لوحة بيانية دقيقة لكل خطوة"
       },
@@ -181,13 +181,12 @@ const translations: Record<Language, TranslationContent> = {
 };
 
 export default function LandingPage() {
-  const [lang, setLang] = useState<Language>("en");
-  const t = translations[lang];
-  const isRtl = lang === "ar";
+  const { lang, setLanguage, isRTL } = useLanguage();
+  const t = translations[lang] || translations.en;
 
   return (
     <div 
-      dir={isRtl ? "rtl" : "ltr"}
+      dir={isRTL ? "rtl" : "ltr"}
       className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white"
     >
       {/* 1. Frosted Glass Navbar */}
@@ -221,7 +220,7 @@ export default function LandingPage() {
                 <button
                   key={locale}
                   type="button"
-                  onClick={() => setLang(locale)}
+                  onClick={() => setLanguage(locale)}
                   className={`px-2.5 py-1 rounded-full transition cursor-pointer ${
                     lang === locale
                       ? "bg-white text-neutral-950 shadow-xs font-semibold"
@@ -266,7 +265,7 @@ export default function LandingPage() {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full bg-black text-white hover:bg-neutral-800 text-xs font-medium tracking-tight transition cursor-pointer"
           >
             <span>{t.hero.ctaPortal}</span>
-            <ArrowRight className={`w-3.5 h-3.5 ${isRtl ? "rotate-180" : ""}`} />
+            <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
           </Link>
           <Link
             href="/goals"
@@ -303,7 +302,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Card 2: 604-Box Density Grid (Apple Hero Feature) */}
+          {/* Card 2: 604-Page Density Grid */}
           <div className="md:col-span-2 bg-[#f5f5f7] rounded-3xl p-8 border border-neutral-200/60 flex flex-col justify-between hover:border-neutral-300 transition-all duration-300">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
               <div>
