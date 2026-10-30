@@ -56,6 +56,71 @@ interface Student {
   receipt_url?: string;
 }
 
+// --- PROFICIENCY STYLING (MATCHES ADMIN EXACTLY) ---
+type ProficiencyLevel = "low" | "medium" | "good" | "mastery";
+
+const PROFICIENCY_CONFIG: Record<
+  ProficiencyLevel,
+  { label: string; bg: string; border: string; text: string; badge: string }
+> = {
+  low: { label: "Low", bg: "bg-rose-50/80", border: "border-rose-200", text: "text-rose-700", badge: "bg-rose-500 text-white" },
+  medium: { label: "Medium", bg: "bg-amber-50/80", border: "border-amber-200", text: "text-amber-800", badge: "bg-amber-500 text-white" },
+  good: { label: "Good", bg: "bg-emerald-50/80", border: "border-emerald-200", text: "text-emerald-800", badge: "bg-emerald-600 text-white" },
+  mastery: { label: "Mastery", bg: "bg-blue-50/80", border: "border-blue-200", text: "text-blue-800", badge: "bg-blue-600 text-white" }
+};
+
+const ARABIC_LETTERS = [
+  "أ", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", 
+  "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", 
+  "ق", "ك", "ل", "م", "ن", "هـ", "و", "ي"
+];
+
+// --- TAJWEED RULES SPECIFICATION (MATCHES DATABASE EVALUATION IDS) ---
+const TAJWEED_CATEGORIES = [
+  {
+    group: "Itmam al-Harakah & Ahkam ar-Ra",
+    items: [
+      { id: "harakah_fathah", label: "Fathah" },
+      { id: "harakah_kasrah", label: "Kasrah" },
+      { id: "harakah_dhammah", label: "Dhammah" },
+      { id: "ra_tarqiq", label: "Ra: Tarqiq" },
+      { id: "ra_tafkhim", label: "Ra: Tafkhim" },
+    ]
+  },
+  {
+    group: "Nun Sakinah & Tanwin",
+    items: [
+      { id: "nun_izhar", label: "Izhar Halqi" },
+      { id: "nun_ikhfa_mufakhham", label: "Ikhfa al-Mufakhkham (ص ض ط ظ ق)" },
+      { id: "nun_ikhfa_muraqqaq", label: "Ikhfa al-Muraqqaq" },
+      { id: "nun_idgham_bila", label: "Idgham Bi La Ghunnah (ل ر)" },
+      { id: "nun_idgham_maal", label: "Idgham Ma'al Ghunnah (ي ن م و)" },
+      { id: "nun_iqlab", label: "Iqlab" },
+    ]
+  },
+  {
+    group: "Mim Sakinah",
+    items: [
+      { id: "mim_izhar", label: "Izhar Syafawi" },
+      { id: "mim_ikhfa", label: "Ikhfa Syafawi" },
+      { id: "mim_idgham", label: "Idgham Syafawi / Mithlain" },
+    ]
+  },
+  {
+    group: "Mudud (Rules of Elongation)",
+    items: [
+      { id: "mad_harfi_muthaqqal", label: "Mad Lazim Harfi Muthaqqal" },
+      { id: "mad_harfi_mukhaffaf", label: "Mad Lazim Harfi Mukhaffaf" },
+      { id: "mad_kalimi_muthaqqal", label: "Mad Lazim Kalimi Muthaqqal" },
+      { id: "mad_kalimi_mukhaffaf", label: "Mad Lazim Kalimi Mukhaffaf" },
+      { id: "mad_muttasil", label: "Mad Muttasil" },
+      { id: "mad_munfasil", label: "Mad Munfasil" },
+      { id: "mad_lin", label: "Mad Lin" },
+      { id: "mad_arid", label: "Mad 'Arid Lissukoon" },
+    ]
+  }
+];
+
 const JUZ_PAGE_RANGES = [
   { juz: 1, start: 1, end: 21 },
   { juz: 2, start: 22, end: 41 },
@@ -127,40 +192,6 @@ const getMemoryHueStyle = (score: number) => {
   }
 };
 
-const ARABIC_LETTERS = [
-  "أ", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", 
-  "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", 
-  "ق", "ك", "ل", "م", "ن", "هـ", "و", "ي"
-];
-
-const TAJWEED_RULES_LEFT = [
-  { name: "Fathah", defaultRating: "Good" },
-  { name: "Dhammah", defaultRating: "Good" },
-  { name: "Ra: Tafkhim", defaultRating: "Good" },
-  { name: "Ikhfa al-Mufakhkham (ص ض ط ظ ق)", defaultRating: "Low" },
-  { name: "Idgham Bi La Ghunnah (ل ر)", defaultRating: "Good" },
-  { name: "Iqlab", defaultRating: "Good" },
-  { name: "Ikhfa Syafawi", defaultRating: "Good" },
-  { name: "Mad Lazim Harfi Muthaqqal", defaultRating: "Low" },
-  { name: "Mad Lazim Kalimi Muthaqqal", defaultRating: "Low" },
-  { name: "Mad Muttasil", defaultRating: "Low" },
-  { name: "Mad Lin", defaultRating: "Low" },
-];
-
-const TAJWEED_RULES_RIGHT = [
-  { name: "Kasrah", defaultRating: "Good" },
-  { name: "Ra: Tarqiq", defaultRating: "Good" },
-  { name: "Izhar Halqi", defaultRating: "Good" },
-  { name: "Ikhfa al-Muraqqaq", defaultRating: "Medium" },
-  { name: "Idgham Ma'al Ghunnah (ي ن م و)", defaultRating: "Medium" },
-  { name: "Izhar Syafawi", defaultRating: "Good" },
-  { name: "Idgham Syafawi / Mithlain", defaultRating: "Good" },
-  { name: "Mad Lazim Harfi Mukhaffaf", defaultRating: "Low" },
-  { name: "Mad Lazim Kalimi Mukhaffaf", defaultRating: "Low" },
-  { name: "Mad Munfasil", defaultRating: "Low" },
-  { name: "Mad 'Arid Lissukoon", defaultRating: "Good" },
-];
-
 function parsePagesData(raw: any): number[] {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw.map(Number).filter((n) => !isNaN(n) && n > 0 && n <= 604);
@@ -183,14 +214,17 @@ function StudentPortalContent() {
   const studentId = searchParams.get("id");
 
   const [student, setStudent] = useState<Student | null>(null);
+  const [latestEval, setLatestEval] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [signingAttendance, setSigningAttendance] = useState(false);
   const [revokingAttendance, setRevokingAttendance] = useState(false);
+  
+  // 1. Defaults 604 grid to open on load
   const [showGridModal, setShowGridModal] = useState(true);
 
-  // 3-PROGRAM REPORT MODAL: tajweed | hifz | sanad
+  // 2. 3-Program views: tajweed | hifz | sanad
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportTab, setReportTab] = useState<"tajweed" | "hifz" | "sanad">("tajweed");
   const [isExporting, setIsExporting] = useState(false);
@@ -202,16 +236,29 @@ function StudentPortalContent() {
       return;
     }
 
-    async function fetchStudent() {
+    async function fetchStudentAndEvaluation() {
       try {
-        const { data, error } = await supabase
+        // 1. Fetch Student Record
+        const { data: stData, error: stError } = await supabase
           .from("students")
           .select("*")
           .eq("id", studentId)
           .single();
 
-        if (error) throw error;
-        setStudent(data);
+        if (stError) throw stError;
+        setStudent(stData);
+
+        // 2. Fetch Latest Evaluation Record (Rubric, Fluency & Feedback)
+        const { data: evData, error: evError } = await supabase
+          .from("student_evaluations")
+          .select("*")
+          .eq("student_id", studentId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (!evError && evData && evData.length > 0) {
+          setLatestEval(evData[0]);
+        }
       } catch (err) {
         console.error("Error fetching student profile:", err);
       } finally {
@@ -219,10 +266,9 @@ function StudentPortalContent() {
       }
     }
 
-    fetchStudent();
+    fetchStudentAndEvaluation();
   }, [studentId]);
 
-  // Read Pages & Memorized Pages
   const tilawahPagesList = useMemo(() => {
     if (!student) return [];
     return parsePagesData(student.tilawah_pages || student.read_pages);
@@ -239,10 +285,20 @@ function StudentPortalContent() {
   const tilawahMarker = student?.tilawah_page || 1;
   const hifzMarker = student?.hifz_page || 1;
   const tilawahPercentage = ((totalPagesRecited / 604) * 100).toFixed(1);
-  const targetGoalPage = student?.target_page || 41;
-  const kpiPercentage = Math.min(Math.round((totalPagesRecited / targetGoalPage) * 100), 100);
 
-  // Attendance Handlers
+  // Exact matching KPI formula with Admin Console
+  const monthlyTargetPgs = (Number(student?.weekly_goal) || 10) * 4;
+  const targetGoalPage = tilawahMarker + monthlyTargetPgs;
+  const achievedPgs = totalPagesRecited || tilawahMarker;
+  const kpiPercentage = Math.min(100, Math.round((achievedPgs / Math.max(1, monthlyTargetPgs)) * 100));
+  const fluencyScore = latestEval?.fluency_score ?? (typeof student?.fluency_rating === "number" ? student.fluency_rating : 80);
+
+  // Sanad / Tilawah file naming mapper
+  const getReportLabel = (tab: string) => {
+    if (tab === "sanad") return "SANAD_TILAWAH";
+    return tab.toUpperCase();
+  };
+
   const handleSignAttendance = async () => {
     if (!student) return;
     setSigningAttendance(true);
@@ -284,7 +340,6 @@ function StudentPortalContent() {
     }
   };
 
-  // Receipt Upload
   const handleReceiptUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !student) return;
@@ -322,7 +377,6 @@ function StudentPortalContent() {
     }
   };
 
-  // Export PDF & PNG
   const exportAsPDF = async () => {
     if (!reportRef.current) return;
     setIsExporting(true);
@@ -331,15 +385,23 @@ function StudentPortalContent() {
       const html2canvas = html2canvasModule.default || html2canvasModule;
       const { jsPDF } = await import("jspdf");
 
-      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        scrollY: 0,
+        scrollX: 0,
+      });
+
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${student?.name || "Student"}_${reportTab.toUpperCase()}_Report.pdf`);
+      pdf.save(`${student?.name || "Student"}_${getReportLabel(reportTab)}_Report.pdf`);
     } catch (err) {
+      console.error("PDF Export failed:", err);
       alert("Failed to export PDF.");
     } finally {
       setIsExporting(false);
@@ -353,19 +415,26 @@ function StudentPortalContent() {
       const html2canvasModule = await import("html2canvas-pro");
       const html2canvas = html2canvasModule.default || html2canvasModule;
 
-      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        scrollY: 0,
+        scrollX: 0,
+      });
+
       const link = document.createElement("a");
-      link.download = `${student?.name || "Student"}_${reportTab.toUpperCase()}_Report.png`;
+      link.download = `${student?.name || "Student"}_${getReportLabel(reportTab)}_Report.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
+      console.error("Image Export failed:", err);
       alert("Failed to export PNG.");
     } finally {
       setIsExporting(false);
     }
   };
 
-  // 1. Black Minimalist Gatekeeper
   if (!studentId || (!loading && !student)) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 selection:bg-white selection:text-black">
@@ -421,7 +490,6 @@ function StudentPortalContent() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white pb-20">
-      {/* Top Navbar */}
       <header className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b border-neutral-200/60">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/" className="inline-flex items-center gap-2 text-xs font-medium text-neutral-500 hover:text-black transition">
@@ -436,7 +504,6 @@ function StudentPortalContent() {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 pt-10 space-y-6">
-        {/* Student Profile Header */}
         <div className="bg-white rounded-3xl p-8 border border-neutral-200/70 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="space-y-1.5">
             <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-400">
@@ -473,7 +540,6 @@ function StudentPortalContent() {
           </div>
         </div>
 
-        {/* 604 Tilawah & Hifz Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-3xl p-6 border border-neutral-200/70 shadow-xs flex flex-col justify-between">
             <div>
@@ -542,7 +608,6 @@ function StudentPortalContent() {
           </div>
         </div>
 
-        {/* Matrix Inspector Button */}
         <div className="bg-white rounded-3xl p-6 border border-neutral-200/70 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="space-y-1 text-center sm:text-left">
             <h3 className="text-sm font-semibold text-neutral-950">
@@ -560,7 +625,6 @@ function StudentPortalContent() {
           </button>
         </div>
 
-        {/* 604 Matrix */}
         {showGridModal && (
           <div className="bg-white rounded-3xl p-6 border border-neutral-200/70 shadow-xs transition-all">
             <div className="flex items-center justify-between mb-4">
@@ -595,7 +659,6 @@ function StudentPortalContent() {
           </div>
         )}
 
-        {/* Attendance Verification & Billing Row (With Revoke Button) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-3xl p-6 border border-neutral-200/70 shadow-xs flex flex-col justify-between">
             <div className="space-y-2">
@@ -717,13 +780,12 @@ function StudentPortalContent() {
       </main>
 
       {/* ========================================================================= */}
-      {/* 3-PROGRAM PERFORMANCE REPORT MODAL (Tajweed | Hifz Program | Tilawah)     */}
+      {/* 3-PROGRAM REPORT MODAL: 1-TO-1 MATCH WITH ADMIN CONSOLE                   */}
       {/* ========================================================================= */}
       {showReportModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full border border-neutral-200 shadow-2xl overflow-hidden my-8">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overflow-y-auto p-3 sm:p-4 flex justify-center items-start">
+          <div className="bg-white rounded-3xl max-w-2xl w-full border border-neutral-200 shadow-2xl overflow-hidden my-4 sm:my-8">
             
-            {/* Top Modal Navigation: 3 TABS */}
             <div className="p-4 border-b border-neutral-100 flex items-center justify-between bg-[#f5f5f7]">
               <div className="inline-flex p-1 rounded-full bg-neutral-200/70 text-xs font-semibold">
                 <button
@@ -763,20 +825,18 @@ function StudentPortalContent() {
               </button>
             </div>
 
-            {/* Printable Canvas */}
-            <div ref={reportRef} className="p-6 sm:p-8 space-y-6 bg-white">
+            <div ref={reportRef} className="p-5 sm:p-8 space-y-6 bg-white">
               
-              {/* Header Box */}
               <div className="flex items-start justify-between pb-4 border-b border-neutral-100">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-neutral-100 border border-neutral-200 text-neutral-900 font-bold flex items-center justify-center text-lg">
                     {student?.name?.charAt(0) || "S"}
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-400 block">
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block">
                       Salman Zulkifle Mentorship
                     </span>
-                    <h2 className="text-xl font-bold text-neutral-950">
+                    <h2 className="text-xl font-black text-neutral-950 tracking-tight">
                       {student?.name}
                     </h2>
                     <p className="text-xs text-neutral-400">
@@ -786,85 +846,92 @@ function StudentPortalContent() {
                 </div>
 
                 <div className="text-right space-y-1">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                     student?.tuition_status === "Paid" || student?.payment_status === "Paid"
                       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                       : "bg-amber-50 text-amber-700 border-amber-200"
                   }`}>
                     Tuition: {student?.tuition_status || student?.payment_status || "Pending"}
                   </span>
-                  <p className="text-[11px] font-mono text-neutral-500">
+                  <p className="text-xs font-bold text-neutral-900 mt-2">
                     {completedSessions} / {totalSessions} Sessions
                   </p>
                 </div>
               </div>
 
-              {/* 1. TAJWEED CORE TAB */}
+              {/* TAB 1: TAJWEED CORE (EXACT MATCH WITH ADMIN CONSOLE) */}
               {reportTab === "tajweed" && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="p-4 rounded-2xl bg-[#f0f9ff] border border-sky-100">
-                      <span className="text-[10px] uppercase tracking-wider font-semibold text-sky-600 block mb-1">
-                        Tilawah Recitation
-                      </span>
-                      <div className="text-lg font-bold text-sky-950">
-                        Pg {tilawahMarker}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs mb-4">
+                    <div className="bg-blue-50/50 p-3.5 rounded-2xl border border-blue-200 flex flex-col justify-between">
+                      <div>
+                        <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Tilawah Recitation</span>
+                        <span className="font-extrabold text-blue-900 block text-base mt-0.5">Pg {tilawahMarker}</span>
                       </div>
-                      <span className="text-[11px] text-sky-700">
-                        ({totalPagesRecited}/604 Pgs)
+                      <span className="text-[10px] text-blue-700 font-medium block mt-1">
+                        {formatJuzRanges(student?.completed_tilawah_juzs)} ({totalPagesRecited}/604 Pgs)
                       </span>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-[#faf5ff] border border-purple-100">
-                      <span className="text-[10px] uppercase tracking-wider font-semibold text-purple-600 block mb-1">
-                        Hifz Memorization
-                      </span>
-                      <div className="text-lg font-bold text-purple-950">
-                        Pg {hifzMarker}
+                    <div className="bg-purple-50/50 p-3.5 rounded-2xl border border-purple-200 flex flex-col justify-between">
+                      <div>
+                        <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Hifz Memorization</span>
+                        <span className="font-extrabold text-purple-900 block text-base mt-0.5">Pg {hifzMarker}</span>
                       </div>
-                      <span className="text-[11px] text-purple-700">
-                        Juz {Math.ceil(hifzMarker / 20)}
+                      <span className="text-[10px] text-purple-700 font-medium block mt-1">
+                        {formatJuzRanges(student?.completed_hifz_juzs)}
                       </span>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-[#f0fdf4] border border-emerald-100">
-                      <span className="text-[10px] uppercase tracking-wider font-semibold text-emerald-600 block mb-1">
+                    <div className="bg-emerald-50/60 p-3.5 rounded-2xl border border-emerald-200 flex flex-col justify-between space-y-1.5">
+                      <span className="text-emerald-800 font-bold text-[10px] uppercase tracking-wider block">
                         Monthly Target vs KPI
                       </span>
-                      <div className="flex items-baseline justify-between text-xs mb-1">
-                        <span className="font-bold text-emerald-950">Pg {targetGoalPage}</span>
-                        <span className="font-semibold text-emerald-700">{totalPagesRecited} Pages</span>
+
+                      <div className="flex items-baseline justify-between pt-0.5">
+                        <div>
+                          <span className="text-[9px] text-neutral-400 block font-medium uppercase">Target Goal</span>
+                          <span className="font-black text-neutral-950 text-sm">Pg {targetGoalPage}</span>
+                          <span className="text-[9px] text-neutral-500 block">({monthlyTargetPgs} pgs/mo)</span>
+                        </div>
+                        <span className="text-neutral-300 font-light text-base px-1">/</span>
+                        <div className="text-right">
+                          <span className="text-[9px] text-neutral-400 block font-medium uppercase">Achieved</span>
+                          <span className="font-black text-emerald-700 text-sm">{achievedPgs} Pages</span>
+                          <span className="text-[9px] text-emerald-600 font-bold block">{kpiPercentage}% of KPI</span>
+                        </div>
                       </div>
-                      <div className="w-full bg-emerald-200/50 rounded-full h-1.5 overflow-hidden">
-                        <div className="bg-emerald-600 h-1.5 rounded-full" style={{ width: `${kpiPercentage}%` }} />
+
+                      <div className="w-full bg-emerald-100/90 h-1.5 rounded-full overflow-hidden mt-1">
+                        <div 
+                          className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-300" 
+                          style={{ width: `${kpiPercentage}%` }} 
+                        />
                       </div>
-                      <span className="text-[10px] text-emerald-600 mt-1 block">
-                        {kpiPercentage}% of KPI achieved
-                      </span>
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-2xl border border-neutral-200/80 bg-white">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-neutral-400">
+                  {/* 28-LETTER MAKHRAJ PRONUNCIATION GRID (DYNAMIC RATINGS) */}
+                  <div className="bg-[#F8F9FB] border border-neutral-200 rounded-2xl p-4">
+                    <div className="flex justify-between items-center mb-2.5">
+                      <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block">
                         Makhraj Pronunciation Grid
                       </span>
-                      <span className="text-xs font-semibold text-emerald-700">
-                        Fluency: {student?.fluency_rating || "70%"}
+                      <span className="text-[10px] font-bold text-neutral-600">
+                        Fluency: {fluencyScore}%
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-10 sm:grid-cols-14 gap-1.5">
+                    <div className="grid grid-cols-7 sm:grid-cols-10 md:grid-cols-14 gap-1.5">
                       {ARABIC_LETTERS.map((letter) => {
-                        const isWarning = letter === "ر";
+                        const rawLvl = latestEval?.alphabet_ratings?.[letter] || "good";
+                        const lvl = (rawLvl in PROFICIENCY_CONFIG ? rawLvl : "good") as ProficiencyLevel;
+                        const cfg = PROFICIENCY_CONFIG[lvl];
+
                         return (
                           <div
                             key={letter}
-                            className={`h-9 rounded-xl border flex items-center justify-center font-bold text-sm transition-all ${
-                              isWarning
-                                ? "border-amber-300 bg-amber-50 text-amber-800"
-                                : "border-emerald-200 bg-emerald-50 text-emerald-800"
-                            }`}
+                            className={`w-full h-8 rounded-lg border font-serif font-bold text-sm flex items-center justify-center ${cfg.bg} ${cfg.border} ${cfg.text}`}
                           >
                             {letter}
                           </div>
@@ -873,53 +940,33 @@ function StudentPortalContent() {
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-2xl border border-neutral-200/80 bg-white">
-                    <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-neutral-400 block mb-3">
+                  {/* TAJWEED RULES BREAKDOWN (DYNAMIC DATABASE RATINGS) */}
+                  <div className="bg-[#F8F9FB] border border-neutral-200 rounded-2xl p-4 text-xs space-y-2">
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block border-b border-neutral-200 pb-1.5">
                       Tajweed Rules Breakdown
                     </span>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                      <div className="space-y-1.5">
-                        {TAJWEED_RULES_LEFT.map((rule) => (
-                          <div key={rule.name} className="flex items-center justify-between p-2 rounded-xl bg-[#fafafa] border border-neutral-100 text-xs">
-                            <span className="font-medium text-neutral-800">{rule.name}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                              rule.defaultRating === "Good" 
-                                ? "bg-emerald-100 text-emerald-800"
-                                : rule.defaultRating === "Medium"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-rose-100 text-rose-800"
-                            }`}>
-                              {rule.defaultRating}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {TAJWEED_CATEGORIES.flatMap((cat) => cat.items).map((item) => {
+                        const rawLvl = latestEval?.rule_ratings?.[item.id] || latestEval?.rule_ratings?.[item.label] || "good";
+                        const lvl = (rawLvl in PROFICIENCY_CONFIG ? rawLvl : "good") as ProficiencyLevel;
+                        const cfg = PROFICIENCY_CONFIG[lvl];
 
-                      <div className="space-y-1.5">
-                        {TAJWEED_RULES_RIGHT.map((rule) => (
-                          <div key={rule.name} className="flex items-center justify-between p-2 rounded-xl bg-[#fafafa] border border-neutral-100 text-xs">
-                            <span className="font-medium text-neutral-800">{rule.name}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                              rule.defaultRating === "Good" 
-                                ? "bg-emerald-100 text-emerald-800"
-                                : rule.defaultRating === "Medium"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-rose-100 text-rose-800"
-                            }`}>
-                              {rule.defaultRating}
-                            </span>
+                        return (
+                          <div key={item.id} className={`p-2.5 rounded-xl border flex justify-between items-center ${cfg.bg} ${cfg.border}`}>
+                            <span className={`font-semibold text-[11px] ${cfg.text}`}>{item.label}</span>
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* 2. HIFZ PROGRAM TAB (RESTORED) */}
+              {/* TAB 2: HIFZ PROGRAM */}
               {reportTab === "hifz" && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-3 text-xs mb-4">
                     <div className="bg-neutral-50 p-3.5 rounded-2xl border border-neutral-200">
                       <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Pages Memorized</span>
@@ -948,7 +995,6 @@ function StudentPortalContent() {
                     </div>
                   </div>
 
-                  {/* 30 Juz Retention Progression Grid */}
                   <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-3">
                     <div className="flex justify-between items-center border-b border-neutral-200/80 pb-2.5">
                       <div>
@@ -1019,10 +1065,9 @@ function StudentPortalContent() {
                     </div>
                   </div>
 
-                  {/* Juz Retention Strength Meters */}
                   <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-2.5">
                     <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block">Juz Memory Retention &amp; Itqan Status</span>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {(student?.completed_hifz_juzs && student.completed_hifz_juzs.length > 0 
                         ? student.completed_hifz_juzs 
                         : [1]
@@ -1049,9 +1094,9 @@ function StudentPortalContent() {
                 </div>
               )}
 
-              {/* 3. TILAWAH REPORT TAB */}
+              {/* TAB 3: TILAWAH REPORT */}
               {reportTab === "sanad" && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="p-5 rounded-2xl bg-[#eff6ff] border border-blue-200/70 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
@@ -1148,24 +1193,31 @@ function StudentPortalContent() {
                 </div>
               )}
 
-              {/* Ustaz Feedback Footer */}
-              <div className="p-4 rounded-2xl bg-[#fafafa] border border-neutral-200/70 space-y-1">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-semibold text-neutral-900 flex items-center gap-1.5">
+              {/* USTAZ'S FEEDBACK & RECOMMENDATIONS */}
+              <div className="bg-[#F8F9FB] border border-neutral-200/90 rounded-2xl p-4 text-xs space-y-1.5 mt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    Ustaz's Feedback &amp; Recommendations
-                  </span>
-                  <span className="text-neutral-400">
-                    Date: {student?.remarks_date || "2026-10-29"}
-                  </span>
+                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
+                      Ustaz&apos;s Feedback &amp; Recommendations
+                    </span>
+                  </div>
+                  {(latestEval?.eval_date || student?.remarks_date) && (
+                    <span className="text-[10px] text-neutral-400 font-medium">
+                      Date: {latestEval?.eval_date || student?.remarks_date}
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs text-neutral-600 italic pt-1 font-mono">
-                  &ldquo;{student?.remarks || "Good recitation, need more time spend to become more eloquent. The red/low valuation is because not valued yet."}&rdquo;
-                </p>
+
+                <div className="pt-1">
+                  <p className="text-neutral-800 text-xs leading-relaxed font-medium bg-white p-3 rounded-xl border border-neutral-200/70">
+                    &ldquo;{latestEval?.tutor_notes || student?.remarks || "Good recitation, need more time spent to become more eloquent."}&rdquo;
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Bottom PDF/PNG Actions */}
+            {/* MODAL FOOTER WITH SAFE FILENAME EXPORT */}
             <div className="p-4 border-t border-neutral-100 bg-[#f5f5f7] flex items-center gap-3">
               <button
                 disabled={isExporting}
