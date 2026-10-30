@@ -52,7 +52,13 @@ const translations = {
     reviewTitle: "Teacher Evaluation & Feedback",
     submitReview: "Submit Review",
     confirmAttended: "Confirm Attended",
-    revoke: "Revoke"
+    revoke: "Revoke",
+    // New Lock Screen Translations
+    studentAccess: "Student Access",
+    referAdmin: "To access your student card, please refer to the administration.",
+    contactAdmin: "Contact Administration",
+    returnHome: "Return Home",
+    mentorshipSystem: "Pocket Tahfiz Mentorship System"
   },
   ms: {
     portalTitle: "Portal Ibu Bapa & Pelajar Pocket Tahfiz",
@@ -73,7 +79,13 @@ const translations = {
     reviewTitle: "Penilaian & Maklum Balas Guru",
     submitReview: "Hantar Ulasan",
     confirmAttended: "Sahkan Hadir",
-    revoke: "Batal Pengesahan"
+    revoke: "Batal Pengesahan",
+    // New Lock Screen Translations
+    studentAccess: "Akses Pelajar",
+    referAdmin: "Untuk mengakses kad pelajar anda, sila rujuk kepada pihak pentadbiran.",
+    contactAdmin: "Hubungi Pentadbiran",
+    returnHome: "Kembali ke Laman Utama",
+    mentorshipSystem: "Sistem Bimbingan Pocket Tahfiz"
   },
   ar: {
     portalTitle: "بوابة الطالب وأولياء الأمور - بوكيت تحفيظ",
@@ -94,7 +106,13 @@ const translations = {
     reviewTitle: "تقييم المعلم والملاحظات",
     submitReview: "إرسال التقييم",
     confirmAttended: "تأكيد الحضور",
-    revoke: "إلغاء التأكيد"
+    revoke: "إلغاء التأكيد",
+    // New Lock Screen Translations
+    studentAccess: "دخول الطالب",
+    referAdmin: "للوصول إلى بطاقة الطالب الخاصة بك، يرجى مراجعة الإدارة.",
+    contactAdmin: "الاتصال بالإدارة",
+    returnHome: "العودة إلى الصفحة الرئيسية",
+    mentorshipSystem: "نظام التوجيه بوكيت تحفيظ"
   }
 };
 
@@ -461,12 +479,13 @@ function StudentPortalContent() {
   const tilawahMarker = student?.tilawah_page || 1;
   const hifzMarker = student?.hifz_page || 1;
   const tilawahPercentage = ((totalPagesRecited / 604) * 100).toFixed(1);
-  
+
   // Exact matching KPI formula with Admin Console
   const monthlyTargetPgs = (Number(student?.weekly_goal) || 10) * 4;
   const targetGoalPage = tilawahMarker + monthlyTargetPgs;
   const achievedPgs = totalPagesRecited || tilawahMarker;
   const kpiPercentage = Math.min(100, Math.round((achievedPgs / Math.max(1, monthlyTargetPgs)) * 100));
+
   const fluencyScore = latestEval?.fluency_score ?? (typeof student?.fluency_rating === "number" ? student.fluency_rating : 80);
 
   // Sanad / Tilawah file naming mapper
@@ -582,6 +601,7 @@ function StudentPortalContent() {
       const html2canvasModule = await import("html2canvas-pro");
       const html2canvas = html2canvasModule.default || html2canvasModule;
       const { jsPDF } = await import("jspdf");
+
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         useCORS: true,
@@ -630,15 +650,48 @@ function StudentPortalContent() {
 
   if (!studentId || (!loading && !student)) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 selection:bg-white selection:text-black">
+      <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 selection:bg-white selection:text-black">
+        {/* Floating Top Bar for Language Switcher on Locked Screen */}
+        <div className="absolute top-6 right-6 flex items-center bg-neutral-900 rounded-full p-1 border border-neutral-800">
+          <button
+            type="button"
+            onClick={() => setLanguage("en")}
+            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+              lang === "en" ? "bg-white text-black shadow-xs" : "text-neutral-500 hover:text-white"
+            }`}
+          >
+            EN
+          </button>
+          <button
+            type="button"
+            onClick={() => setLanguage("ms")}
+            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+              lang === "ms" ? "bg-white text-black shadow-xs" : "text-neutral-500 hover:text-white"
+            }`}
+          >
+            BM
+          </button>
+          <button
+            type="button"
+            onClick={() => setLanguage("ar")}
+            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+              lang === "ar" ? "bg-white text-black shadow-xs" : "text-neutral-500 hover:text-white"
+            }`}
+          >
+            العربية
+          </button>
+        </div>
+
         <div className="max-w-md w-full flex flex-col items-center text-center space-y-7">
           <div className="w-14 h-14 rounded-2xl bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-2xl">
             <Lock className="w-6 h-6 text-neutral-400" />
           </div>
           <div className="space-y-3">
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white font-sans">Student Access</h1>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white font-sans">
+              {t.studentAccess}
+            </h1>
             <p className="text-sm text-neutral-400 font-normal leading-relaxed max-w-xs mx-auto">
-              To access your student card, please refer to the administration.
+              {t.referAdmin}
             </p>
           </div>
           <div className="pt-2 flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
@@ -648,18 +701,18 @@ function StudentPortalContent() {
               rel="noopener noreferrer"
               className="w-full sm:w-auto px-7 py-3 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-semibold tracking-tight transition cursor-pointer"
             >
-              Contact Administration
+              {t.contactAdmin}
             </a>
             <Link
               href="/"
               className="w-full sm:w-auto px-7 py-3 rounded-full bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-medium text-neutral-400 hover:text-white transition cursor-pointer"
             >
-              Return Home
+              {t.returnHome}
             </Link>
           </div>
           <div className="pt-8">
             <span className="text-[10px] tracking-widest uppercase font-mono text-neutral-600">
-              Pocket Tahfiz Mentorship System
+              {t.mentorshipSystem}
             </span>
           </div>
         </div>
@@ -690,7 +743,7 @@ function StudentPortalContent() {
       <header className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b border-neutral-200/60 px-6">
         <div className="max-w-4xl mx-auto h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="p-2 text-neutral-400 hover:text-neutral-900 bg-neutral-100 rounded-full transition cursor-pointer">
+            <Link href="/" className="p-2 text-neutral-404 hover:text-neutral-900 bg-neutral-100 rounded-full transition cursor-pointer">
               <ArrowLeft className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
             </Link>
             <div>
@@ -755,6 +808,7 @@ function StudentPortalContent() {
               <span>{student?.location || "Not specified"}</span>
             </p>
           </div>
+          
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
               student?.tuition_status === "Paid" || student?.payment_status === "Paid"
@@ -1463,7 +1517,7 @@ function StudentPortalContent() {
                   <div className="p-5 rounded-2xl border border-neutral-200/80 bg-white">
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <span className="text-xs font-bold text-neutral-950 block">
+                        <span className="text-xs font-bold text-neutral-955 block">
                           604 Traditional Mushaf Ledger
                         </span>
                         <span className="text-[10px] text-neutral-400">
