@@ -1,21 +1,39 @@
 {
-  "name": "Pocket Tahfiz",
-  "short_name": "PocketTahfiz",
+  "id": "/admin",
+  "name": "Pocket Tahfiz Mentorship",
+  "short_name": "Pocket Tahfiz",
+  "description": "Comprehensive student mentorship, 604-page Mushaf tracking, and Tajweed evaluation ledger.",
   "start_url": "/admin",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
   "orientation": "portrait",
+  "background_color": "#0A0A0B",
+  "theme_color": "#0A0A0B",
+  "categories": ["education", "productivity"],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Admin Console",
+      "url": "/admin",
+      "description": "Manage student ledgers and assessments"
+    },
+    {
+      "name": "Student Goals",
+      "url": "/goals",
+      "description": "View monthly progress and target KPIs"
     }
   ]
 }

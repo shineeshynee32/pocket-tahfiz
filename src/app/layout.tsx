@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-// 1. We import the memory box here 
+// 1. Language Context Provider
 import { LanguageProvider } from "@/context/LanguageContext";
 
 const geistSans = Geist({
@@ -15,13 +15,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Pocket Tahfiz",
   description: "Student Mentorship & Tahfiz Ledger",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-512.png",
+  },
 };
 
-// Interface for layout props
+export const viewport: Viewport = {
+  themeColor: "#0A0A0B",
+  width: "device-width",
+  initialScale: 1,
+};
+
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -33,10 +42,25 @@ export default function RootLayout({ children }: LayoutProps) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {/* 2. We wrap your site contents inside our memory box here */}
+        {/* Site content wrapped inside context provider */}
         <LanguageProvider>
           {children}
         </LanguageProvider>
+
+        {/* Service Worker Registration for PWA & Android APK installation */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                    console.error('Service worker registration failed:', err);
+                  });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
